@@ -10,6 +10,8 @@
 #define ChatFirebaseAdapter_h
 
 #import <Firebase/Firebase.h>
+//#import <FirebaseAuth/FirebaseAuth.h>
+//#import <FirebaseDatabase/FirebaseDatabase.h>
 
 #import <ChatSDKFirebaseAdapter/NSManagedObject+Status.h>
 
