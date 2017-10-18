@@ -40,8 +40,6 @@
     // Typing Indicator
     NSTimer * _typingTimer;
 
-    UILabel * _titleLabel;
-    UILabel * _subtitleLabel;
     NSString * _subtitleText;
 
     bChatState _chatState;
@@ -52,6 +50,8 @@
 }
 
 @property (weak, nonatomic) IBOutlet UITableView * tableView;
+@property (nonatomic, strong) UILabel *titleLabel;
+@property (nonatomic, strong) UILabel *subtitleLabel;
 @property (nonatomic, readwrite, weak) id<ElmChatViewDelegate> delegate;
 
 @property (strong, nonatomic) MPMoviePlayerController * videoPlayer;

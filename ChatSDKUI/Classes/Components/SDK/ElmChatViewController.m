@@ -26,6 +26,8 @@
 
 @synthesize tableView;
 @synthesize delegate;
+@synthesize titleLabel = _titleLabel;
+@synthesize subtitleLabel = _subtitleLabel;
 
 - (id)initWithDelegate: (id<ElmChatViewDelegate>) delegate_
 {
