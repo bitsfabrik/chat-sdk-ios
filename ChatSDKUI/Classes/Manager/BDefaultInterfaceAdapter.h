@@ -30,4 +30,9 @@
     NSMutableDictionary * _additionalSearchViewControllers;
 }
 
+-(UIColor *) placeholderColor;
+-(NSString *) messageColorMeHex;
+-(NSString *) messageColorReplayHex;
+-(NSString *) tintColor;
+
 @end

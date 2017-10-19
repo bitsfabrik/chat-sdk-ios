@@ -11,7 +11,10 @@
 #import <ChatSDK/ChatCore.h>
 #import <ChatSDK/ChatUI.h>
 
+
 @implementation BChatViewController
+
+@synthesize thread = _thread;
 
 - (id)initWithThread: (id<PThread>) thread
 {
@@ -31,7 +34,7 @@
     [super viewDidLoad];
     
     // Set the title
-    [self setTitle:_thread.displayName ? _thread.displayName : [NSBundle t: bDefaultThreadName]];
+    [self setTitle:_thread.displayName ? _thread.displayName : _thread.otherUser.name ?: [NSBundle t: bDefaultThreadName]];
     
     // Set the subtitle
     [self updateSubtitle];

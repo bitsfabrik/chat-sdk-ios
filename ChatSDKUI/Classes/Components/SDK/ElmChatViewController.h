@@ -11,6 +11,7 @@
 #import <ChatSDK/BChatOptionDelegate.h>
 #import <ChatSDK/PElmMessage.h>
 #import <ChatSDK/ElmChatViewDelegate.h>
+#import <ChatSDK/BMessageCellDelegate.h>
 
 
 @protocol PChatOptionsHandler;
@@ -21,7 +22,7 @@
 @class BLocationViewController;
 @class BMessageSection;
 
-@interface ElmChatViewController : UIViewController<UITableViewDataSource, UITableViewDelegate, BTextInputDelegate, UINavigationControllerDelegate, UIScrollViewDelegate, BChatOptionDelegate> {
+@interface ElmChatViewController : UIViewController<UITableViewDataSource, UITableViewDelegate, BTextInputDelegate, UINavigationControllerDelegate, UIScrollViewDelegate, BChatOptionDelegate, BMessageCellDelegate> {
     
     NSArray<BMessageSection *> * _messages;
     

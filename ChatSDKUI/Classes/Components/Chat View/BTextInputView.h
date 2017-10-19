@@ -31,6 +31,7 @@
 @property (nonatomic, readwrite) UIButton * optionsButton;
 @property (nonatomic, readwrite) UIButton * sendButton;
 
+-(void) customize;
 -(void) setAudioEnabled: (BOOL) audioEnabled;
 -(BOOL) resignFirstResponder;
 -(void) becomeFirstResponder;

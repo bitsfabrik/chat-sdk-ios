@@ -14,15 +14,15 @@
 @protocol PThread;
 
 @interface BChatViewController : ElmChatViewController<ElmChatViewDelegate> {
-    id<PThread> _thread;
     
     BOOL _usersViewLoaded;
     
     NSMutableArray * _messageCache;
     BOOL _messageCacheDirty;
     BNotificationObserverList * _notificationList;
-
 }
+
+@property (strong, nonatomic) id<PThread> thread;
 
 - (id)initWithThread: (id<PThread>) thread;
 - (void) updateSubtitle;

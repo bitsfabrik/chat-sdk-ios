@@ -14,7 +14,6 @@
 
 -(void) setMessage: (id<PElmMessage, PMessageLayout>) message;
 -(void) setMessage: (id<PElmMessage, PMessageLayout>) message withColorWeight: (float) colorWeight;
-
 -(void) willDisplayCell;
 
 @end

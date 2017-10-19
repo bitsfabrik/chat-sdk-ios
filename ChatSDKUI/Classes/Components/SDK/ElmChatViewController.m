@@ -61,7 +61,7 @@
 
 // The text input view sits on top of the keyboard
 -(void) setupTextInputView {
-    _textInputView = [[BTextInputView alloc] init];
+    _textInputView = [[[BInterfaceManager sharedManager] a] textInputView];
     _textInputView.messageDelegate = self;
     
     
@@ -350,6 +350,7 @@
     
     messageCell = [tableView_ dequeueReusableCellWithIdentifier:message.type.stringValue];
     messageCell.navigationController = self.navigationController;
+    messageCell.delegate = self;
     
     // Add a gradient to the cells
     //float colorWeight = ((float) indexPath.row / (float) self.messages.count) * 0.15 + 0.85;
@@ -603,6 +604,15 @@
         [self reloadData];
         return Nil;
     }, Nil);
+}
+
+#pragma BMessageCellDelegate
+
+-(void) showProfile:(id<PUser>)user {
+    if (![user.entityID isEqualToString: NM.currentUser.entityID]) {
+        UIViewController * profileView = [[BInterfaceManager sharedManager].a profileViewControllerWithUser: user];
+        [self.navigationController pushViewController:profileView animated:YES];
+    }
 }
 
 #pragma  Picture selection

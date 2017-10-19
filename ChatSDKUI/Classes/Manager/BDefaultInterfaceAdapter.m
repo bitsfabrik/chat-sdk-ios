@@ -64,6 +64,10 @@
     return [[BChatViewController alloc] initWithThread:thread];
 }
 
+-(BTextInputView *) textInputView {
+    return [[BTextInputView alloc] init];
+}
+
 -(NSArray *) defaultTabBarViewControllers {
     return @[self.privateThreadsViewController,
              self.publicThreadsViewController,
@@ -199,6 +203,22 @@
 
 -(UIColor *) colorForName: (NSString *) name {
     return Nil;
+}
+
+-(UIColor *) placeholderColor {
+    return UIColor.darkGrayColor;
+}
+
+-(NSString *) messageColorMeHex {
+    return bDefaultMessageColorMe;
+}
+
+-(NSString *) messageColorReplayHex {
+    return bDefaultMessageColorReply;
+}
+
+-(NSString *) tintColorHex {
+    return nil;
 }
 
 @end

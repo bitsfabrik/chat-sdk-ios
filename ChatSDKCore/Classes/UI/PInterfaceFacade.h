@@ -16,7 +16,7 @@
 @class BChatViewController;
 @class BFriendsListViewController;
 @class BChatOption;
-
+@class BTextInputView;
 
 @protocol PInterfaceFacade <NSObject>
 
@@ -26,6 +26,7 @@
 -(UIViewController *) profileViewControllerWithUser: (id<PUser>) user ;
 -(BFriendsListViewController *) friendsViewControllerWithUsersToExclude: (NSArray *) usersToExclude;
 -(BChatViewController *) chatViewControllerWithThread: (id<PThread>) thread;
+-(BTextInputView *) textInputView;
 -(NSArray *) defaultTabBarViewControllers;
 
 -(UIViewController *) searchViewControllerWithType: (NSString *) type excludingUsers: (NSArray *) users usersAdded: (void(^)(NSArray * users)) usersAdded;
@@ -49,6 +50,11 @@
 -(UIViewController *) settingsViewController;
 
 -(UIColor *) colorForName: (NSString *) name;
+
+-(UIColor *) placeholderColor;
+-(NSString *) messageColorMeHex;
+-(NSString *) messageColorReplayHex;
+-(NSString *) tintColorHex;
 
 @end
 

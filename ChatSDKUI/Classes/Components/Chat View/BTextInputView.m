@@ -40,7 +40,7 @@
         maxLines = bMaxLines;
         
         // Set the text color
-        _placeholderColor = [UIColor darkGrayColor];
+        _placeholderColor = [[[BInterfaceManager sharedManager] a] placeholderColor];
         _textColor = [UIColor blackColor];
 
         // Create an options button which shows an action sheet
@@ -146,6 +146,7 @@
         topMarginView.keepHeight.equal = 0.5 + keepRequired;
         
         [self resizeToolbar];
+        [self customize];
     }
     return self;
 }
@@ -172,6 +173,9 @@
         [_sendButton setTitle:[NSBundle t:bSend] forState:UIControlStateNormal];
         [_sendButton setImage:Nil forState:UIControlStateNormal];
     }
+}
+
+-(void) customize {
 }
 
 #pragma Button Delegates

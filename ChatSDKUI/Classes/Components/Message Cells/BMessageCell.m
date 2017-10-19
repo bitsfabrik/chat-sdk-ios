@@ -17,6 +17,7 @@
 
 @synthesize bubbleImageView;
 @synthesize message = _message;
+@synthesize delegate;
 
 - (id)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier
 {
@@ -224,13 +225,14 @@
 
 // Open the users profile
 -(void) showProfileView {
-    
-    // Cannot view our own profile this way
-    if (![_message.userModel.entityID isEqualToString:NM.currentUser.entityID]) {
-        
-        
-        UIViewController * profileView = [[BInterfaceManager sharedManager].a profileViewControllerWithUser:_message.userModel];
-        [self.navigationController pushViewController:profileView animated:YES];
+    if([self.delegate respondsToSelector:@selector(showProfile:)]) {
+        [self.delegate showProfile: _message.userModel];
+    } else {
+        // Cannot view our own profile this way
+        if (![_message.userModel.entityID isEqualToString:NM.currentUser.entityID]) {
+            UIViewController * profileView = [[BInterfaceManager sharedManager].a profileViewControllerWithUser:_message.userModel];
+            [self.navigationController pushViewController:profileView animated:YES];
+        }
     }
 }
 

@@ -12,6 +12,7 @@
 
 #import "ChatFirebaseAdapter.h"
 #import <ChatSDK/ChatCore.h>
+#import <ChatSDK/ChatUI.h>
 
 
 @implementation CCUserWrapper
@@ -129,7 +130,7 @@
     
     // Setup the message color defaults
     if (!_model.messageColor || !_model.messageColor.length) {
-        _model.messageColor = [BCoreUtilities colorToString:[BCoreUtilities colorWithHexString:bDefaultMessageColorMe]];
+        _model.messageColor = [BCoreUtilities colorToString:[BCoreUtilities colorWithHexString: [[[BInterfaceManager sharedManager] a] messageColorMeHex]]];
     }
 }
 
