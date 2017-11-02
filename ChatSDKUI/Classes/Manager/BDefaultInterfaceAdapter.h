@@ -31,6 +31,10 @@
 }
 
 -(UIColor *) placeholderColor;
+-(UIFont *) messageSystemTextFont;
+-(UIFont *) messageDateFont;
+-(UIFont *) messageNameFont;
+-(UIFont *) messageTextFont;
 -(NSString *) messageColorMeHex;
 -(NSString *) messageColorReplayHex;
 -(NSString *) tintColor;

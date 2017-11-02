@@ -43,14 +43,14 @@
         [self.contentView addSubview:_profilePicture];
         
         _timeLabel = [[UILabel alloc] initWithFrame:CGRectMake(bTimeLabelPadding, 0, 0, 0)];
-        _timeLabel.font = [UIFont italicSystemFontOfSize:12];
+        _timeLabel.font = [[[BInterfaceManager sharedManager] a] messageDateFont];
         _timeLabel.textColor = [UIColor lightGrayColor];
         _timeLabel.userInteractionEnabled = NO;
         
         [self.contentView addSubview:_timeLabel];
 
         _nameLabel = [[UILabel alloc] initWithFrame:CGRectMake(bTimeLabelPadding, 0, 0, 0)];
-        _nameLabel.font = [UIFont boldSystemFontOfSize:bDefaultUserNameLabelSize];
+        _nameLabel.font = [[[BInterfaceManager sharedManager] a] messageNameFont];
         _nameLabel.userInteractionEnabled = NO;
         
         _readMessageImageView = [[UIImageView alloc] initWithFrame:CGRectMake(bTimeLabelPadding, 0, 0, 0)];

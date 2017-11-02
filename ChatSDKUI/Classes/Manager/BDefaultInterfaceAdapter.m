@@ -209,6 +209,22 @@
     return UIColor.darkGrayColor;
 }
 
+-(UIFont *) messageSystemTextFont {
+    return [UIFont systemFontOfSize:14];
+}
+
+-(UIFont *) messageDateFont {
+    return [UIFont italicSystemFontOfSize:12];
+}
+
+-(UIFont *) messageNameFont {
+    return [UIFont boldSystemFontOfSize:bDefaultUserNameLabelSize];
+}
+
+-(UIFont *) messageTextFont {
+    return [UIFont systemFontOfSize:bDefaultFontSize];
+}
+
 -(NSString *) messageColorMeHex {
     return bDefaultMessageColorMe;
 }

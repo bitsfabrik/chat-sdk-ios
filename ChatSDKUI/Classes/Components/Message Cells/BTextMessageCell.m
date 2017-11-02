@@ -46,7 +46,7 @@
     [super setMessage:message withColorWeight:colorWeight];
     
     textView.text = message.textString;
-    textView.font = [UIFont systemFontOfSize:bDefaultFontSize];
+    textView.font = [[[BInterfaceManager sharedManager] a] messageTextFont];
     
     textView.textColor = [BCoreUtilities colorWithHexString:bDefaultTextColor];
 }
