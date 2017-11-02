@@ -1,0 +1,22 @@
+## 4.3.4
+
+Fixed:
+
+https://github.com/chat-sdk/chat-sdk-ios/issues/92
+
+## 4.3.3
+
+Updated Pod structure to make repository compatible with CocoaPods trunk.
+
+To upgrade:
+
+Cmd + Shift + F
+Click "Find" and choose "Replace"
+
+Replace the following import strings:
+
+ChatSDKCore/ -> ChatSDK/
+ChatSDKCoreData/ => ChatSDK/
+ChatSDKUI/ => ChatSDK/
+
+

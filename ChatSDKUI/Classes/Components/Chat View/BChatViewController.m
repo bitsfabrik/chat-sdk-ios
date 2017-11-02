@@ -230,8 +230,8 @@
 }
 
 -(RXPromise *) sendSystemMessage: (NSString *) text {
-    return [self handleMessageSend:[[BNetworkManager sharedManager].a.stickerMessage sendMessageWithSticker:text
-                                                                                         withThreadEntityID:_thread.entityID]];
+    [NM.core sendLocalSystemMessageWithText:text withThreadEntityID:_thread.entityID];
+    return [RXPromise resolveWithResult:Nil];
 }
 
 -(RXPromise *) sendSticker: (NSString *) name {
@@ -331,7 +331,7 @@
     }
     
     if([BNetworkManager sharedManager].a.stickerMessage) {
-        [types addObject: @[[BNetworkManager sharedManager].a.stickerMessage.messageCellClass, @(bMessageTypeSticker)]];
+        [types addObject: @[NM.stickerMessage.messageCellClass, @(bMessageTypeSticker)]];
     }
 
     return types;
