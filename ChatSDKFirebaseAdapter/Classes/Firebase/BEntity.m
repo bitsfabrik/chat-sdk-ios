@@ -18,6 +18,10 @@
 
 @implementation BEntity
 
++(RXPromise *) pushThreadMetaUpdated: (NSString *) threadID {
+    return [self pushUpdated:bThreadsPath entityID:threadID key:bMetaDataPath];
+}
+
 +(RXPromise *) pushThreadDetailsUpdated: (NSString *) threadID {
     return [self pushUpdated:bThreadsPath entityID:threadID key:bDetailsPath];
 }

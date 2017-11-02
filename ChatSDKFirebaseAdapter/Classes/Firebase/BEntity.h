@@ -13,6 +13,7 @@
 @interface BEntity : NSObject {
 }
 
++(RXPromise *) pushThreadMetaUpdated: (NSString *) threadID;
 +(RXPromise *) pushThreadDetailsUpdated: (NSString *) threadID;
 +(RXPromise *) pushThreadUsersUpdated: (NSString *) threadID;
 +(RXPromise *) pushThreadMessagesUpdated: (NSString *) threadID;

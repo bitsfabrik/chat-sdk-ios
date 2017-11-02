@@ -55,7 +55,7 @@
     ((NSManagedObject *)_model).on = YES;
     
     // Get the thread data
-    FIRDatabaseReference * threadDetailsRef = [[FIRDatabaseReference threadRef:self.entityID] child:bDetailsPath];
+    FIRDatabaseReference * threadDetailsRef = [FIRDatabaseReference threadRef:self.entityID];
     
     [threadDetailsRef observeEventType:FIRDataEventTypeValue withBlock:^(FIRDataSnapshot * snapshot) {
         if (![snapshot.value isEqual: [NSNull null]]) {
@@ -413,15 +413,19 @@
 //}
 
 -(NSDictionary *) serialize {
-    return @{bDetailsPath: @{b_CreationDate: [FIRServerValue timestamp],
+    return @{b_Meta: _model.metaDictionary,
+             bDetailsPath: @{b_CreationDate: [FIRServerValue timestamp],
                              b_Name: _model.name ? _model.name : @"",
                              b_Type: _model.type.integerValue & bThreadFilterPrivate ? @(bThreadTypePrivateV3) : @(bThreadTypePublicV3),
                              b_TypeV4: _model.type,
                              b_CreatorEntityID: _model.creator.entityID}};
 }
 
--(void) deserialize: (NSDictionary *) value {
+-(void) deserialize: (NSDictionary *) threadValue {
     
+    _model.metaDictionary = threadValue[b_Meta];
+    
+    NSDictionary * value = threadValue[bDetailsPath];
     NSNumber * creationDate = value[b_CreationDate];
     if (creationDate) {
         _model.creationDate = [BFirebaseCoreHandler timestampToDate:creationDate];
@@ -456,7 +460,6 @@
     if (name) {
         _model.name = name;
     }
-    
 }
 
 -(RXPromise *) push {
@@ -473,6 +476,7 @@
     
     [ref updateChildValues:self.serialize withCompletionBlock:^(NSError * error, FIRDatabaseReference * ref) {
         if (!error) {
+            [BEntity pushThreadMetaUpdated:self.model.entityID];
             [BEntity pushThreadDetailsUpdated:self.model.entityID];
             [promise resolveWithResult:self.model];
         }

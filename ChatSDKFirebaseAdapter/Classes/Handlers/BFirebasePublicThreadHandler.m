@@ -15,11 +15,15 @@
 
 
 -(RXPromise *) createPublicThreadWithName:(NSString *)name {
-    return [self createPublicThreadWithName:name entityID:Nil isHidden:NO];
+    return [self createPublicThreadWithName:name metaDictionary:@{}];
+}
+
+-(RXPromise *) createPublicThreadWithName:(NSString *)name metaDictionary: (NSDictionary *) metaDictionary  {
+    return [self createPublicThreadWithName:name entityID:Nil isHidden:NO metaDictionary:metaDictionary];
 }
 
 // The hidden BOOL will create the thread but hide it - generally this should be set to NO
--(RXPromise *) createPublicThreadWithName: (NSString *) name entityID: (NSString *) entityID isHidden: (BOOL) hidden {
+-(RXPromise *) createPublicThreadWithName: (NSString *) name entityID: (NSString *) entityID isHidden: (BOOL) hidden metaDictionary: (NSDictionary *) metaDictionary {
     // Before we create the thread start an undo grouping
     // that means that if it fails we can undo changed to the database
     [[BStorageManager sharedManager].a beginUndoGroup];
@@ -42,6 +46,7 @@
     threadModel.type = @(bThreadTypePublicGroup);
     threadModel.name = name;
     threadModel.entityID = entityID ? entityID : Nil;
+    threadModel.metaDictionary = metaDictionary;
     
     [[BStorageManager sharedManager].a endUndoGroup];
     

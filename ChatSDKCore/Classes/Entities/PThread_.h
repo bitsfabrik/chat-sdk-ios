@@ -104,5 +104,8 @@ typedef enum {
 -(UIImage *)imageForThread;
 -(NSDate *) orderDate;
 
+-(void) setMetaDictionary: (NSDictionary *) dict;
+-(NSDictionary *) metaDictionary;
+
 @end
 
