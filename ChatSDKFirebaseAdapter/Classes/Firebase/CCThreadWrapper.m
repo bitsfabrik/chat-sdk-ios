@@ -413,7 +413,7 @@
 //}
 
 -(NSDictionary *) serialize {
-    return @{b_Meta: _model.metaDictionary,
+    return @{b_Meta: _model.metaDictionary ?: @{},
              bDetailsPath: @{b_CreationDate: [FIRServerValue timestamp],
                              b_Name: _model.name ? _model.name : @"",
                              b_Type: _model.type.integerValue & bThreadFilterPrivate ? @(bThreadTypePrivateV3) : @(bThreadTypePublicV3),
