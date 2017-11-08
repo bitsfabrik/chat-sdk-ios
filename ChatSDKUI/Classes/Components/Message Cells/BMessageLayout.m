@@ -119,7 +119,7 @@
 -(float) bubblePadding {
     switch ((bMessageType)_message.type.intValue) {
         case bMessageTypeText:
-            return 12.0;
+            return 10;
         case bMessageTypeImage:
         case bMessageTypeLocation:
         case bMessageTypeAudio:
@@ -151,17 +151,14 @@
 }
 
 -(float) getTextHeightWithWidth: (float) width {
-    return [_message.textString boundingRectWithSize:CGSizeMake(width, CGFLOAT_MAX)
-                                   options:NSStringDrawingUsesLineFragmentOrigin
-                                attributes:@{NSFontAttributeName: [[[BInterfaceManager sharedManager] a] messageTextFont]}
-                                   context:Nil].size.height;
+    return [self getTextHeightWithFont:[[[BInterfaceManager sharedManager] a] messageTextFont] withWidth:width];
 }
 
 -(float) getTextHeightWithFont: (UIFont *) font withWidth: (float) width {
     return [_message.textString boundingRectWithSize:CGSizeMake(width, CGFLOAT_MAX)
-                                   options:NSStringDrawingUsesLineFragmentOrigin
-                                attributes:@{NSFontAttributeName: font}
-                                   context:Nil].size.height;
+                                             options:NSStringDrawingUsesLineFragmentOrigin
+                                          attributes:@{NSFontAttributeName: font}
+                                             context:Nil].size.height + 2;
 }
 
 

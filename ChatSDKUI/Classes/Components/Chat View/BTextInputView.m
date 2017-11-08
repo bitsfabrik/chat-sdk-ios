@@ -9,7 +9,7 @@
 #import "BTextInputView.h"
 #import <ChatSDK/ChatCore.h>
 
-#define bMargin 4.0
+#define bMargin 5.0
 
 // The amount of padding (above + below) the text
 // i.e. textView height = text height + padding
@@ -22,7 +22,7 @@
 @implementation BTextInputView
 
 @synthesize textView = _textView;
-@synthesize maxLines, minLines;
+@synthesize maxLines, minLines, sideMargin;
 @synthesize messageDelegate;
 @synthesize optionsButton = _optionsButton;
 @synthesize sendButton = _sendButton;
@@ -88,7 +88,7 @@
         }
 
         // Constrain the elements
-        _optionsButton.keepLeftInset.equal = bMargin +keepRequired;
+        _optionsButton.keepLeftInset.equal = self.sideMargin +keepRequired;
 
         _optionsButton.keepBottomInset.equal = 8.0;
         _optionsButton.keepHeight.equal = 24;
@@ -98,7 +98,7 @@
         
         _optionsButton.translatesAutoresizingMaskIntoConstraints = NO;
         
-        _sendButton.keepRightInset.equal = bMargin;
+        _sendButton.keepRightInset.equal = self.sideMargin;
         _sendButton.keepBottomInset.equal = 0;
         _sendButton.keepHeight.equal = 40;
         _sendButton.keepWidth.equal = 48;
@@ -173,6 +173,10 @@
         [_sendButton setTitle:[NSBundle t:bSend] forState:UIControlStateNormal];
         [_sendButton setImage:Nil forState:UIControlStateNormal];
     }
+}
+
+- (CGFloat) sideMargin {
+    return bMargin;
 }
 
 -(void) customize {

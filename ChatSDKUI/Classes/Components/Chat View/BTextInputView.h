@@ -28,9 +28,11 @@
 
 @property (nonatomic, readwrite) NSInteger maxLines;
 @property (nonatomic, readwrite) NSInteger minLines;
+@property (nonatomic, readonly) CGFloat sideMargin;
 @property (nonatomic, readwrite) UIButton * optionsButton;
 @property (nonatomic, readwrite) UIButton * sendButton;
 
+-(void) setFont: (UIFont *) font;
 -(void) customize;
 -(void) setAudioEnabled: (BOOL) audioEnabled;
 -(BOOL) resignFirstResponder;

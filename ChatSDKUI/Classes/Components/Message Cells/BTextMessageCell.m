@@ -34,7 +34,7 @@
             textView.linkTextAttributes = @{NSForegroundColorAttributeName: linkColor};
         }
         
-        textView.contentInset = UIEdgeInsetsMake(-9.0, -5.0, 0.0, 0.0);
+        textView.contentInset = UIEdgeInsetsMake(-8.0, -5.0, 0.0, 0.0);
         
         [self.bubbleImageView addSubview:textView];
         
