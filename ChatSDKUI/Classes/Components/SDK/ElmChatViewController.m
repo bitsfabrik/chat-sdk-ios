@@ -28,6 +28,7 @@
 @synthesize delegate;
 @synthesize titleLabel = _titleLabel;
 @synthesize subtitleLabel = _subtitleLabel;
+@synthesize customBottomInset;
 
 - (id)initWithDelegate: (id<ElmChatViewDelegate>) delegate_
 {
@@ -59,6 +60,10 @@
     return self;
 }
 
+-(CGFloat) customBottomInset {
+    return 0;
+}
+
 // The text input view sits on top of the keyboard
 -(void) setupTextInputView {
     _textInputView = [[[BInterfaceManager sharedManager] a] textInputView];
@@ -67,7 +72,7 @@
     
     [self.view addSubview:_textInputView];
     
-    _textInputView.keepBottomInset.equal = 0;
+    _textInputView.keepBottomInset.equal = self.customBottomInset;
     _textInputView.keepLeftInset.equal = 0;
     _textInputView.keepRightInset.equal = 0;
     
@@ -735,7 +740,7 @@
     
     _keyboardOverlay.frame = keyboardBounds;
 
-    _textInputView.keepBottomInset.equal = 0;
+    _textInputView.keepBottomInset.equal = self.customBottomInset;
     [self.view setNeedsUpdateConstraints];
     
     [UIView beginAnimations:Nil context:Nil];

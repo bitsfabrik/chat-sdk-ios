@@ -54,6 +54,7 @@
 @property (nonatomic, strong) UILabel *titleLabel;
 @property (nonatomic, strong) UILabel *subtitleLabel;
 @property (nonatomic, readwrite, weak) id<ElmChatViewDelegate> delegate;
+@property (nonatomic, readonly) CGFloat customBottomInset;
 
 @property (strong, nonatomic) MPMoviePlayerController * videoPlayer;
 
