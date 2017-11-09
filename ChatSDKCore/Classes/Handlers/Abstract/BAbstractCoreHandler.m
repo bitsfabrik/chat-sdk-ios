@@ -86,7 +86,7 @@
             }
         }
         else if (thread.type.intValue & bThreadFilterPublic) {
-            if(thread.type.intValue & type) {
+            if(thread.type.intValue & type && (!thread.deleted_.boolValue || includeDeleted) && (thread.allMessages.count || includeEmpty)) {
                 [threads addObject:thread];
             }
         }
