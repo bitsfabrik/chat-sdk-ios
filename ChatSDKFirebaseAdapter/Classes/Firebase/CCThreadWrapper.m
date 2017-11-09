@@ -330,8 +330,24 @@
                                       [[BStorageManager sharedManager].a undo];
                                       return error;
                                   });
-    }
-    else {
+    } else if (_model.type.intValue & bThreadTypePublicGroup) {
+        
+        FIRDatabaseReference * publicThreadRef = [[FIRDatabaseReference publicThreadsRef] child: self.entityID];
+        [publicThreadRef removeValueWithCompletionBlock:^(NSError * _Nullable error, FIRDatabaseReference * _Nonnull ref) {
+            if (!error) {
+                FIRDatabaseReference * threadRef = [FIRDatabaseReference threadRef:self.entityID];
+                [threadRef removeValue];
+                [promise resolveWithResult:Nil];
+            } else {
+                [promise rejectWithReason:error];
+            }
+        }];
+        
+        // We still want to notify the user to refresh the view
+        [[NSNotificationCenter defaultCenter] postNotificationName:bNotificationThreadDeleted object:Nil];
+    
+        return promise;
+    } else {
         
         // We still want to notify the user to refresh the view
         [[NSNotificationCenter defaultCenter] postNotificationName:bNotificationThreadDeleted object:Nil];
