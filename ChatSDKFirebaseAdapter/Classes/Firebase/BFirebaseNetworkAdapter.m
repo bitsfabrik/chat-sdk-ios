@@ -17,7 +17,8 @@
     if((self = [super init])) {
         
         // Configure app for Facebook login
-        [FIRApp configure];
+        
+        //[FIRApp configure];
         
         
         

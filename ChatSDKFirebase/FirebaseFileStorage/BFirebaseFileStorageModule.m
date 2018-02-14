@@ -18,7 +18,7 @@
 }
 
 -(void) activateForXMPP {
-    [FIRApp configure];
+    //[FIRApp configure];
     [BNetworkManager sharedManager].a.upload = [[BFirebaseUploadHandler alloc] init];
 }
 

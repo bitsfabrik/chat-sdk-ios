@@ -37,4 +37,6 @@
 
 +(NSString *) property: (NSString *) property forModule: (NSString *) module;
 
++ (void)setMainKey:(NSString *)key;
+
 @end
