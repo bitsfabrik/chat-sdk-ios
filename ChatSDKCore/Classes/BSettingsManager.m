@@ -35,10 +35,12 @@
 #define bAppBadgeEnabledKey @"app_badge_enabled"
 #define bUserChatInfoEnabledKey @"user_chat_info_enabled"
 
+NSString *BSettingsManagerMainKey = bMainKey;
+
 @implementation BSettingsManager
 
 +(NSDictionary *) settings {
-    return [[NSBundle mainBundle] objectForInfoDictionaryKey:bMainKey];
+    return [[NSBundle mainBundle] objectForInfoDictionaryKey:BSettingsManagerMainKey];
 }
 
 +(id) s: (NSArray *) parameters {
@@ -144,5 +146,8 @@
     return @{};
 }
 
++ (void)setMainKey:(NSString *)key {
+    BSettingsManagerMainKey = key;
+}
 
 @end
