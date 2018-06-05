@@ -15,12 +15,14 @@
 
 @protocol PChatOptionsHandler <NSObject>
 
--(id) initWithChatViewController: (BChatViewController *) chatViewController;
+@optional
+
+-(instancetype) initWithDelegate: (id<BChatOptionDelegate>) delegate;
 
 -(BOOL) show;
 -(BOOL) hide;
--(void) setDelegate: (id<BChatOptionDelegate>) delegate;
 -(id<BChatOptionDelegate>) delegate;
+-(void) setDelegate: (id<BChatOptionDelegate>) delegate;
 -(UIView *) keyboardView;
 -(void) presentView: (UIView *) view;
 -(void) dismissView;

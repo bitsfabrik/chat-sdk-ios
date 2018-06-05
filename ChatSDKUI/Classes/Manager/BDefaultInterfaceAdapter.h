@@ -13,6 +13,7 @@
 
 @class BPrivateThreadsViewController;
 @class BPublicThreadsViewController;
+@class BFlaggedMessagesViewController;
 @class BContactsViewController;
 @class UIViewController;
 @class BFriendsListViewController;
@@ -28,15 +29,7 @@
     NSMutableArray * _additionalChatOptions;
     NSMutableArray * _additionalTabBarViewControllers;
     NSMutableDictionary * _additionalSearchViewControllers;
+    BOOL _showLocalNotifications;
 }
-
--(UIColor *) placeholderColor;
--(UIFont *) messageSystemTextFont;
--(UIFont *) messageDateFont;
--(UIFont *) messageNameFont;
--(UIFont *) messageTextFont;
--(NSString *) messageColorMeHex;
--(NSString *) messageColorReplayHex;
--(NSString *) tintColor;
 
 @end

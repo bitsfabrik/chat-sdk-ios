@@ -19,7 +19,7 @@
     return [[self alloc] initWithMessage:message];
 }
 
--(id) initWithMessage: (id<PElmMessage>) message {
+-(instancetype) initWithMessage: (id<PElmMessage>) message {
     if((self = [self init])) {
         _message = message;
     }
@@ -61,11 +61,12 @@
         case bMessageTypeLocation:
             return bMaxMessageWidth;
         case bMessageTypeAudio:
-            return 160;
+            return bMaxMessageWidth;
         case bMessageTypeSticker:
             return 140;
+        default:
+            return bMaxMessageWidth;
     }
-    return bMaxMessageWidth;
 }
 
 -(float) textWidth: (NSString *) text {
@@ -90,7 +91,7 @@
 }
 
 -(float) nameHeight {
-    bMessagePosition pos = [[BMessageCache sharedCache] positionForMessage:_message];
+    bMessagePos pos = [_message messagePosition];
     // Do we want to show the users name label
     if ([_message showUserNameLabelForPosition:pos]) {
         return bUserNameHeight;
@@ -112,8 +113,11 @@
         case bMessageTypeSystem:
         case bMessageTypeSticker:
             return 2.0;
+        case bMessageTypeCustom:
+        case bMessageTypeFile:
+        default:
+            return 0;
     }
-    return 0;
 }
 
 -(float) bubblePadding {
@@ -129,8 +133,11 @@
             return 5.0;
         case bMessageTypeSticker:
             return 0.0;
+        case bMessageTypeCustom:
+        case bMessageTypeFile:
+        default:
+            return 0;
     }
-    return 0;
 }
 
 -(float) profilePicturePadding {
@@ -141,9 +148,13 @@
         case bMessageTypeAudio:
         case bMessageTypeVideo:
         case bMessageTypeSticker:
+        case bMessageTypeSystem:
             return 4.0;
+        case bMessageTypeCustom:
+        case bMessageTypeFile:
+        default:
+            return 0;
     }
-    return 0;
 }
 
 -(float) profilePictureDiameter {

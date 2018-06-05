@@ -9,16 +9,17 @@
 #import <Foundation/Foundation.h>
 
 @protocol PElmMessage;
+@protocol PMessageLayout;
 
 @interface BMessageSection : NSObject {
     NSMutableArray * _messages;
     UIView * _view;
 }
 
--(id) initWithMessages: (NSArray *) messages;
+-(instancetype) initWithMessages: (NSArray *) messages;
 -(NSString *) title;
--(id<PElmMessage>) messageForRow: (int) row;
--(int) rowCount;
+-(id<PElmMessage, PMessageLayout>) messageForRow: (NSInteger) row;
+-(NSInteger) rowCount;
 -(void) addMessage: (id<PElmMessage>) message;
 -(UIView *) view;
 

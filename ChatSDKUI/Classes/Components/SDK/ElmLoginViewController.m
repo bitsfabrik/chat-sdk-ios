@@ -29,23 +29,22 @@
 @synthesize twitterButton;
 @synthesize googleButton;
 
+@synthesize forgotPasswordButton;
+
 @synthesize delegate;
 
-@synthesize splashView;
-
--(id) initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil {
-    if ((self = [self init])) {
-        
+-(instancetype) initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil {
+    if ((self = [super initWithNibName:@"BLoginViewController" bundle:[NSBundle chatUIBundle]])) {
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillShow:) name:UIKeyboardWillShowNotification object:Nil];
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:Nil];
     }
     return self;
 }
 
-- (id)init
+-(instancetype) init
 {
-    self = [super initWithNibName:@"BLoginViewController" bundle:[NSBundle chatUIBundle]];
+    self = [self initWithNibName:Nil bundle:Nil];
     if (self) {
-        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillShow:) name:UIKeyboardWillShowNotification object:Nil];
-        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:Nil];
     }
     return self;
 }
@@ -96,6 +95,8 @@
 }
 
 -(void) viewDidDisappear:(BOOL)animated {
+    [super viewDidDisappear:animated];
+    
     [self hideHUDWithDuration:0];
     
     [[NSNotificationCenter defaultCenter] removeObserver:_internetConnectionObserver];
@@ -175,6 +176,7 @@
                     return Nil;
                 }, ^id(NSError * error) {
                     [self alertWithTitle:[NSBundle t:bErrorTitle] withError:error];
+                    [self hideHUD];
                     return Nil;
                 });
 }
@@ -201,7 +203,7 @@
 }
 
 - (IBAction)termsAndConditionsButtonPressed:(id)sender {
-    BEULAViewController * vc = [[BEULAViewController alloc] init];
+    UIViewController * vc = [BInterfaceManager sharedManager].a.eulaViewController;
     UINavigationController * nvc = [[UINavigationController alloc] initWithRootViewController:vc];
     [self presentViewController:nvc animated:YES completion:Nil];
 }
@@ -229,14 +231,11 @@
 -(void) showHUD: (NSString *) message {
     
     if(_hud) {
-        [MBProgressHUD hideHUDForView:splashView animated:NO];
+        [MBProgressHUD hideHUDForView:self.view animated:NO];
     }
     
-    //if (!_hud) {
-        _hud = [MBProgressHUD showHUDAddedTo:splashView animated:NO];
-        _hud.label.text = message;
-        //[_hud hide:NO];
-    //}
+    _hud = [MBProgressHUD showHUDAddedTo:self.view animated:NO];
+    _hud.label.text = message;
     
     // Sometimes there are operations that take a very small amount of time
     // to complete - this messes up the animation. Really we only want to show the
@@ -246,8 +245,6 @@
 
 -(void) showHudNow {
     [_hud showAnimated:YES];
-    [splashView fadeToAlpha:1.0 withTime:0.3];
-    //[self.view bringSubviewToFront:_hud];
 }
 
 -(void) hideHUD {
@@ -259,8 +256,6 @@
     _timer = Nil;
     
     [_hud hideAnimated:duration == 0 ? NO : YES];
-    
-    [splashView fadeToAlpha:0.0 withTime:duration];
 }
 
 -(void) authenticationFinished {
@@ -296,6 +291,51 @@
     anonymousButton.alpha = connected ? 1 : 0.6;
 }
 
+- (IBAction)forgotPasswordPressed:(id)sender {
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:[NSBundle t:bForgotPassword]
+                                                                   message:[NSBundle t:bEnterCredentialToResetPassword]
+                                                            preferredStyle:UIAlertControllerStyleAlert];
+    
+    UIAlertAction *submit = [UIAlertAction actionWithTitle:[NSBundle t:bOk] style:UIAlertActionStyleDefault
+                                                   handler:^(UIAlertAction * action) {
+                                                       if (alert.textFields.count > 0) {
+                                                           UITextField *textField = [alert.textFields firstObject];
+                                                           [self impl_resetPasswordWithCredential:textField.text];
+                                                       }
+                                                   }];
+    
+    UIAlertAction * cancel = [UIAlertAction actionWithTitle:[NSBundle t:bCancel] style:UIAlertActionStyleCancel handler:Nil];
+    
+    [alert addAction:submit];
+    [alert addAction:cancel];
+    
+    [alert addTextFieldWithConfigurationHandler:^(UITextField *textField) {
+        textField.placeholder = delegate.usernamePlaceholder;
+    }];
+    
+    [self presentViewController:alert animated:YES completion:Nil];
+    
+}
 
+-(void) impl_resetPasswordWithCredential: (NSString *) credential {
+    [delegate resetPasswordWithCredential:credential].thenOnMain(^id(id success) {
+        UIAlertController *alert = [UIAlertController alertControllerWithTitle:[NSBundle t:bSuccess]
+                                                                       message:[NSBundle t:bEnterCredentialToResetPassword]
+                                                                preferredStyle:UIAlertControllerStyleAlert];
+        UIAlertAction * cancel = [UIAlertAction actionWithTitle:[NSBundle t:bOk] style:UIAlertActionStyleCancel handler:Nil];
+        [alert addAction:cancel];
+        
+        [self presentViewController:alert animated:YES completion:Nil];
+        return Nil;
+    }, ^id(NSError * error) {
+        UIAlertController *alert = [UIAlertController alertControllerWithTitle:[NSBundle t:bErrorTitle]
+                                                                       message:[error localizedDescription]
+                                                                preferredStyle:UIAlertControllerStyleAlert];
+        UIAlertAction * cancel = [UIAlertAction actionWithTitle:[NSBundle t:bOk] style:UIAlertActionStyleCancel handler:Nil];
+        [alert addAction:cancel];
+        [self presentViewController:alert animated:YES completion:Nil];
+        return Nil;
+    });
+}
 
 @end

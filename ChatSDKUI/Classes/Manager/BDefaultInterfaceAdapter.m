@@ -11,23 +11,42 @@
 #import <ChatSDK/ChatCore.h>
 #import <ChatSDK/ChatUI.h>
 #import <ChatSDK/BChatViewController.h>
+#import <ChatSDK/BChatOptionDelegate.h>
 
 #define bControllerKey @"bControllerKey"
-#define bNameKey @"bNameKey"
+#define bControllerNameKey @"bControllerNameKey"
 
 @implementation BDefaultInterfaceAdapter
 
--(id) init {
+-(instancetype) init {
     if((self = [super init])) {
         _additionalChatOptions = [NSMutableArray new];
         _additionalTabBarViewControllers = [NSMutableArray new];
         _additionalSearchViewControllers = [NSMutableDictionary new];
+        
+        // MEM1
+        //[[SDWebImageDownloader sharedDownloader] setShouldDecompressImages:NO];
     }
     return self;
 }
 
 -(void) addTabBarViewController: (UIViewController *) controller atIndex: (int) index {
     [_additionalTabBarViewControllers addObject:@[controller, @(index)]];
+}
+
+-(void) removeTabBarViewControllerAtIndex: (int) index {
+    int i = 0;
+    BOOL found = false;
+    for(NSArray * array in _additionalTabBarViewControllers) {
+        if([array[1] intValue] == index) {
+            found = true;
+            break;
+        }
+        i++;
+    }
+    if (found) {
+        [_additionalTabBarViewControllers removeObjectAtIndex:i];
+    }
 }
 
 -(UIViewController *) privateThreadsViewController {
@@ -41,6 +60,10 @@
     return [[BPublicThreadsViewController alloc] init];
 }
 
+-(UIViewController *) flaggedMessagesViewController {
+    return [[BFlaggedMessagesViewController alloc] init];
+}
+
 -(UIViewController *) contactsViewController {
     return [[BContactsViewController alloc] init];
 }
@@ -49,15 +72,23 @@
     return [[BFriendsListViewController alloc] initWithUsersToExclude:usersToExclude];
 }
 
--(UIViewController *) profileViewControllerWithUser: (id<PUser>) user {
+-(UIViewController *) appTabBarViewController {
+    return [[BAppTabBarController alloc] initWithNibName:Nil bundle:Nil];
+}
+
+-(UIViewController *) profileViewControllerWithUser: (id<PElmUser>) user {
     
     UIStoryboard * storyboard = [UIStoryboard storyboardWithName:@"Profile"
                                                           bundle:[NSBundle chatUIBundle]];
     
     BProfileTableViewController * controller = [storyboard instantiateInitialViewController];
-
+    // TODO: Fix this
     controller.user = user;
     return controller;
+}
+
+-(UIViewController *) eulaViewController {
+    return [[BEULAViewController alloc] init];
 }
 
 -(BChatViewController *) chatViewControllerWithThread: (id<PThread>) thread {
@@ -69,10 +100,16 @@
 }
 
 -(NSArray *) defaultTabBarViewControllers {
-    return @[self.privateThreadsViewController,
-             self.publicThreadsViewController,
-             self.contactsViewController,
-             [self profileViewControllerWithUser: Nil]];
+    NSMutableArray * dict = [NSMutableArray arrayWithArray:@[self.privateThreadsViewController,
+                                                             self.publicThreadsViewController,
+                                                             self.contactsViewController,
+                                                             [self profileViewControllerWithUser: Nil]]];
+    
+    if([BChatSDK config].enableMessageModerationTab) {
+        [dict addObject: self.flaggedMessagesViewController];
+    }
+    
+    return dict;
 }
 
 -(NSArray *) tabBarViewControllers {
@@ -98,8 +135,8 @@
     NSMutableArray * options = [NSMutableArray new];
     
     BOOL videoEnabled = NM.videoMessage != Nil;
-    BOOL imageEnabled = NM.imageMessage != Nil;
-    BOOL locationEnabled = NM.locationMessage != Nil;
+    BOOL imageEnabled = NM.imageMessage != Nil && [BChatSDK config].imageMessagesEnabled;
+    BOOL locationEnabled = NM.locationMessage != Nil && [BChatSDK config].locationMessagesEnabled;
     
     if (imageEnabled && videoEnabled) {
         [options addObject:[[BMediaChatOption alloc] initWithType:bPictureTypeCameraVideo]];
@@ -131,7 +168,7 @@
     UIViewController<PSearchViewController> * vc;
     
     if([type isEqualToString:bSearchTypeNameSearch]) {
-        vc = [[BSearchViewController alloc] initWithUsersToExclude: users selectedAction: usersAdded];
+        vc = [self searchViewControllerExcludingUsers:users usersAdded:usersAdded];
     }
     else {
         vc = _additionalSearchViewControllers[type][bControllerKey];
@@ -147,13 +184,13 @@
 -(NSDictionary *) additionalSearchControllerNames {
     NSMutableDictionary * nameForType = [NSMutableDictionary new];
     for(NSString * key in [_additionalSearchViewControllers allKeys]) {
-        nameForType[key] = _additionalSearchViewControllers[key][bNameKey];
+        nameForType[key] = _additionalSearchViewControllers[key][bControllerNameKey];
     }
     return nameForType;
 }
 
 -(void) addSearchViewController: (UIViewController *) controller withType: (NSString *) type withName: (NSString *) name {
-    [_additionalSearchViewControllers setObject:@{bControllerKey: controller, bNameKey: name}
+    [_additionalSearchViewControllers setObject:@{bControllerKey: controller, bControllerNameKey: name}
                                          forKey:type];
 }
 
@@ -162,21 +199,22 @@
 }
 
 
--(UIViewController *) searchViewControllerExcludingUsers: (NSArray *) users usersAdded: (void(^)(NSArray * users)) usersAdded {
+-(UIViewController<PSearchViewController> *) searchViewControllerExcludingUsers: (NSArray *) users usersAdded: (void(^)(NSArray * users)) usersAdded {
     BSearchViewController * vc = [[BSearchViewController alloc] initWithUsersToExclude: users];
-
-    return [[UINavigationController alloc] initWithRootViewController:vc];
+    [vc setSelectedAction:usersAdded];
+    return vc;
 }
 
 -(void) setChatOptionsHandler:(id<PChatOptionsHandler>)handler {
     _chatOptionsHandler = handler;
 }
 
--(id<PChatOptionsHandler>) chatOptionsHandlerWithChatViewController: (BChatViewController *) chatViewController {
+-(id<PChatOptionsHandler>) chatOptionsHandlerWithDelegate: (id<BChatOptionDelegate>) delegate {
     if (_chatOptionsHandler) {
+        _chatOptionsHandler.delegate = delegate;
         return _chatOptionsHandler;
     }
-    return [[BChatOptionsActionSheet alloc] initWithChatViewController:chatViewController];
+    return [[BChatOptionsActionSheet alloc] initWithDelegate:delegate];
 }
 
 -(UIViewController *) usersViewControllerWithThread: (id<PThread>) thread parentNavigationController: (UINavigationController *) parent {
@@ -205,36 +243,17 @@
     return Nil;
 }
 
--(UIColor *) placeholderColor {
-    return UIColor.darkGrayColor;
+-(UIView<PSendBar> *) sendBarView {
+    return [[BTextInputView alloc] initWithFrame:CGRectZero];
 }
 
--(UIFont *) messageSystemTextFont {
-    return [UIFont systemFontOfSize:14];
+-(BOOL) showLocalNotification: (id) notification {
+    return _showLocalNotifications && [BChatSDK config].showLocalNotifications;
 }
 
--(UIFont *) messageDateFont {
-    return [UIFont italicSystemFontOfSize:12];
+-(void) setShowLocalNotifications: (BOOL) show {
+    _showLocalNotifications = show;
 }
 
--(UIFont *) messageNameFont {
-    return [UIFont boldSystemFontOfSize:bDefaultUserNameLabelSize];
-}
-
--(UIFont *) messageTextFont {
-    return [UIFont systemFontOfSize:bDefaultFontSize];
-}
-
--(NSString *) messageColorMeHex {
-    return bDefaultMessageColorMe;
-}
-
--(NSString *) messageColorReplayHex {
-    return bDefaultMessageColorReply;
-}
-
--(NSString *) tintColorHex {
-    return nil;
-}
 
 @end

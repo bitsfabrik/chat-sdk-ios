@@ -54,6 +54,11 @@
 -(void) setLoginInfo: (NSDictionary *) info;
 
 /**
+ * @brief Save the user's login credentials
+ */
+-(void) saveAccountDetails: (BAccountDetails *) details;
+-(BAccountDetails *) getSavedAccountDetails;
+/**
  * @brief Get the current user's authentication id
  */
 -(NSString *) currentUserEntityID;
@@ -63,6 +68,8 @@
  */
 -(UIViewController *) challengeViewController;
 -(void) setChallengeViewController: (UIViewController *) viewController;
+
+-(RXPromise *) resetPasswordWithCredential: (NSString *) credential;
 
 @end
 

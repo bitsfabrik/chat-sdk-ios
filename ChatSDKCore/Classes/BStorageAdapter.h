@@ -22,6 +22,7 @@
 
 @class BMessageDef;
 @class BThreadDef;
+@class NSFetchRequest;
 
 @protocol BStorageAdapter <NSObject>
 
@@ -31,14 +32,13 @@
 -(id) fetchOrCreateEntityWithID: (NSString *) entityID withType: (NSString *) type;
 -(id) fetchOrCreateEntityWithPredicate: (NSPredicate *) predicate withType: (NSString *) type;
 -(id<PThread>) fetchThreadWithUsers: (NSArray *) users;
-
--(id<PMessage>) messageForMessageDef: (BMessageDef *) builder;
--(id<PThread>) threadForThreadDef: (BThreadDef *) def;
+-(id) executeFetchRequest: (NSFetchRequest *) fetchRequest entityName: (NSString *) entityName predicate: (NSPredicate *) predicate;
 
 -(id<PMessage>) createMessageEntity;
 -(id<PThread>) createThreadEntity;
 
 -(void) save;
+-(void) saveToStore;
 
 -(id) createEntity: (NSString *) entityName;
 

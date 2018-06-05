@@ -10,8 +10,6 @@
 
 #import <RXPromise/RXPromise.h>
 #import <FirebaseStorage/FirebaseStorage.h>
-
-#import <ChatSDK/BSettingsManager.h>
 #import <ChatSDK/BCoreUtilities.h>
 
 #define bStorageBucket @"files"
@@ -20,7 +18,7 @@
 
 -(RXPromise *) uploadFile:(NSData *)file withName: (NSString *) name mimeType: (NSString *) mimeType {
     FIRStorage * storage = [FIRStorage storage];
-    FIRStorageReference * ref = [storage referenceForURL: [BSettingsManager firebaseStoragePath]];
+    FIRStorageReference * ref = [storage reference];
     FIRStorageReference * filesRef = [ref child:bStorageBucket];
     
     NSString * fullName = [NSString stringWithFormat:@"%@_%@", [BCoreUtilities getUUID], name];

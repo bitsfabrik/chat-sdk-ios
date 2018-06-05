@@ -12,11 +12,18 @@
 //#import "ChatCore.h"
 
 
-@interface BCoreDataManager : NSObject<BStorageAdapter>
+@interface BCoreDataManager : NSObject<BStorageAdapter> {
+    NSManagedObjectContext * _moc;
+    NSManagedObjectContext * _privateMoc;
+    NSManagedObjectModel * _model;
+    NSPersistentStoreCoordinator * _store;
+}
 
-@property (nonatomic, retain, readonly) NSManagedObjectModel * managedObjectModel;
-@property (nonatomic, retain, readonly) NSManagedObjectContext *managedObjectContext;
-@property (nonatomic, retain, readonly) NSPersistentStoreCoordinator *persistentStoreCoordinator;
+
+
+//@property (nonatomic, retain, readonly) NSManagedObjectModel * managedObjectModel;
+//@property (nonatomic, retain, readonly) NSManagedObjectContext *managedObjectContext;
+//@property (nonatomic, retain, readonly) NSPersistentStoreCoordinator *persistentStoreCoordinator;
 
 -(NSArray *) fetchEntitiesWithName: (NSString *) entityName;
 -(id) fetchOrCreateEntityWithID: (NSString *) entityID withType: (NSString *) type;
@@ -28,6 +35,7 @@
 -(void) save;
 -(id) fetchEntityWithID: (NSString *) entityID withType: (NSString *) type;
 -(id) fetchOrCreateEntityWithPredicate: (NSPredicate *) predicate withType: (NSString *) type ;
+-(id) executeFetchRequest: (NSFetchRequest *) fetchRequest entityName: (NSString *) entityName predicate: (NSPredicate *) predicate;
 
 -(void) beginUndoGroup;
 -(void) endUndoGroup;

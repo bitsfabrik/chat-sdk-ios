@@ -23,7 +23,6 @@
 
 #import <ChatSDK/BNetworkManager.h>
 #import <ChatSDK/BStorageManager.h>
-#import <ChatSDK/BSettingsManager.h>
 #import <ChatSDK/BNetworkFacade.h>
 #import <ChatSDK/BAbstractNetworkAdapter.h>
 #import <ChatSDK/BBaseHookHandler.h>
@@ -70,6 +69,8 @@
 #import <ChatSDK/PSocialLoginHandler.h>
 #import <ChatSDK/NSBundle+ChatCore.h>
 #import <ChatSDK/BAccountDetails.h>
+#import <ChatSDK/BChatSDK.h>
+#import <ChatSDK/BConfiguration.h>
 
 #import <ChatSDK/BHook.h>
 #import <ChatSDK/PHookHandler.h>
@@ -85,6 +86,9 @@
 #import <ChatSDK/BKeys.h>
 #import <ChatSDK/BCoreDefines.h>
 #import <ChatSDK/NM.h>
+#import <ChatSDK/BModuleHelper.h>
+#import <ChatSDK/BIntegrationHelper.h>
+#import <ChatSDK/NSObject+Meta.h>
 
 #import <ChatSDK/bPictureTypes.h>
 

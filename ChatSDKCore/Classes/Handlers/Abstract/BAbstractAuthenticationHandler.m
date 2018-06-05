@@ -16,20 +16,20 @@
     
     switch (accountType) {
         case bAccountTypeFacebook:
-            key = [BSettingsManager facebookAppId];
-            break;
+            key = BChatSDK.config.facebookAppId;
+            return key.length && NM.socialLogin && [BChatSDK shared].configuration.facebookLoginEnabled;
         case bAccountTypeTwitter:
-            key = [BSettingsManager twitterApiKey];
-            break;
+            key = BChatSDK.config.twitterApiKey;
+            return key.length && NM.socialLogin && [BChatSDK shared].configuration.twitterLoginEnabled;
         case bAccountTypeGoogle:
-            key = [BSettingsManager googleApiKey];
-            break;
+            key = BChatSDK.config.googleClientKey;
+            return key.length && [BChatSDK shared].configuration.googleLoginEnabled && NM.socialLogin;
         case bAccountTypeAnonymous:
-            key = [BSettingsManager anonymousLoginEnabled] ? @"YES" : @"";
+            return BChatSDK.config.anonymousLoginEnabled;
         default:
             break;
     }
-    return key.length && (NM.socialLogin || accountType == bAccountTypeAnonymous) ? YES : NO;
+    return NO;
 }
 
 -(RXPromise *) authenticateWithDictionary:(NSDictionary *)details {
@@ -52,6 +52,7 @@
             break;
         case bAccountTypeRegister:
             accountDetails = [BAccountDetails signUp: details[bLoginEmailKey] password:details[bLoginPasswordKey]];
+            break;
         case bAccountTypeAnonymous:
             accountDetails = [BAccountDetails anonymous];
             break;
@@ -70,6 +71,15 @@
 
 -(NSString *) currentUserEntityID {
     return [[NSUserDefaults standardUserDefaults] dictionaryForKey:bCurrentUserLoginInfo][bAuthenticationIDKey];
+}
+
+-(void) saveAccountDetails: (BAccountDetails *) details {
+    [self setLoginInfo:@{bLoginUsernameKey: details.username,
+                         bLoginPasswordKey: details.password}];
+}
+
+-(BAccountDetails *) getSavedAccountDetails {
+    return [BAccountDetails username:self.loginInfo[bLoginUsernameKey] password:self.loginInfo[bLoginPasswordKey]];
 }
 
 -(void) setLoginInfo: (NSDictionary *) info {
@@ -103,6 +113,14 @@
  * @brief Logout the user from the current account
  */
 -(RXPromise *) logout {
+    assert(NO);
+}
+
+- (RXPromise *)authenticate:(BAccountDetails *)details {
+    assert(NO);
+}
+
+- (RXPromise *)resetPasswordWithCredential:(NSString *)credential {
     assert(NO);
 }
 

@@ -19,7 +19,7 @@
 @synthesize imageView;
 @synthesize image;
 
-- (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
+-(instancetype) initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
 {
     self = [super initWithNibName:@"BImageViewController" bundle:[NSBundle chatUIBundle]];
     if (self) {
@@ -32,6 +32,14 @@
 {
     [super viewDidLoad];
     self.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:[NSBundle t: bBack] style:UIBarButtonItemStylePlain target:self action:@selector(backButtonPressed)];
+    self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:[NSBundle t: bSave] style:UIBarButtonItemStylePlain target:self action:@selector(save)];
+    _swipeRecognizer = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(swipeDownDetected)];
+    _swipeRecognizer.direction = UISwipeGestureRecognizerDirectionDown;
+    [self.view addGestureRecognizer:_swipeRecognizer];
+}
+
+-(void) swipeDownDetected {
+    [self dismissViewControllerAnimated:YES completion:Nil];
 }
 
 -(void) viewWillAppear:(BOOL)animated {
@@ -81,6 +89,19 @@
 
 -(void) backButtonPressed {
     [self dismissViewControllerAnimated:YES completion:Nil];
+}
+
+-(void) save {
+    UIImageWriteToSavedPhotosAlbum(image, self, @selector(image:didFinishSavingWithError:contextInfo:), Nil);
+}
+
+- (void)image:(UIImage *)image didFinishSavingWithError:(NSError *)error contextInfo:(void *)contextInfo  {
+    if (error) {
+        [self.view makeToast:error.localizedDescription];
+    }
+    else {
+        [self.view makeToast:[NSBundle t:bSuccess]];
+    }
 }
 
 @end

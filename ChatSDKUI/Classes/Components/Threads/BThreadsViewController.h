@@ -23,12 +23,14 @@
 }
 
 @property (nonatomic, readwrite) UITableView *tableView;
+@property (nonatomic, readwrite) NSMutableArray * threads;
 
-- (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil;
+-(instancetype) initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil;
 
 -(void) pushChatViewControllerWithThread: (id<PThread>) thread;
 -(void) reloadData;
 -(void) setEditingEnabled: (BOOL) enabled;
 -(void) toggleEditing;
+-(void) createThread;
 
 @end

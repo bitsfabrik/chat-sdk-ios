@@ -24,8 +24,14 @@
 @synthesize searchTermButton;
 @synthesize activityView;
 @synthesize usersSelected;
+@synthesize addButton = _addButton;
+@synthesize selectedUsers = _selectedUsers;
 
-- (id)initWithUsersToExclude: (NSArray *) excludedUsers selectedAction: (void(^)(NSArray * users)) action {
+-(instancetype) initWithUsersToExclude: (NSArray *) excludedUsers {
+    return [self initWithUsersToExclude:excludedUsers selectedAction:Nil];
+}
+
+-(instancetype) initWithUsersToExclude: (NSArray *) excludedUsers selectedAction: (void(^)(NSArray * users)) action {
     
     self = [super initWithNibName:@"BSearchViewController" bundle:[NSBundle chatUIBundle]];
     if (self) {
@@ -33,15 +39,37 @@
         _selectedUsers = [NSMutableArray new];
         
         self.title = [NSBundle t: bSearch];
-        
+       
         _usersToExclude = excludedUsers;
         self.usersSelected = action;
+        _showKeyboardOnLoad = YES;
+        
+//        _searchController = [[UISearchController alloc] initWithSearchResultsController:Nil];
+//        _searchController.searchResultsUpdater = self;
+//        _searchController.delegate = self;
+//        _searchController.searchBar.delegate = self;
+//
+//        _searchController.hidesNavigationBarDuringPresentation = NO;
+//        _searchController.dimsBackgroundDuringPresentation = YES;
+        
+//        self.navigationItem.titleView = _searchController.searchBar;
+//        self.definesPresentationContext = YES;
+        
+        
     }
     return self;
 }
 
+//- (void)updateSearchResultsForSearchController:(UISearchController *)searchController {
+//    NSLog(@"Now");
+//}
+
 -(void) setExcludedUsers: (NSArray *) excludedUsers {
     _usersToExclude = excludedUsers;
+}
+
+-(void) showKeyboardOnLoad: (BOOL) showKeyboard {
+    _showKeyboardOnLoad = showKeyboard;
 }
 
 -(void) setSelectedAction: (void(^)(NSArray * users)) action {
@@ -54,12 +82,26 @@
     if ([NM.search respondsToSelector:@selector(availableIndexes)]) {
         // Get the search terms...
         [self startActivityIndicator];
+        
+        __weak __typeof__(self) weakSelf = self;
 
         [NM.search availableIndexes].thenOnMain(^id(NSArray * indexes) {
-            searchTermButton.hidden = !indexes.count;
-            _searchTermViewController = [[BSearchIndexViewController alloc] initWithIndexes: indexes withCallback:^(NSArray * index) {
-                [searchTermButton setTitle:index.key forState:UIControlStateNormal];
-                _currentSearchIndex = index;
+            __typeof__(self) strongSelf = weakSelf;
+            
+            NSMutableArray * nonRequiredIndexes = [NSMutableArray new];
+            
+            for(NSArray * index in indexes) {
+                if(![index required]) {
+                    [nonRequiredIndexes addObject:index];
+                }
+            }
+            
+            
+            
+            strongSelf.searchTermButton.hidden = !indexes.count;
+            strongSelf->_searchTermViewController = [[BSearchIndexViewController alloc] initWithIndexes: nonRequiredIndexes withCallback:^(NSArray * index) {
+                [strongSelf.searchTermButton setTitle:index.key forState:UIControlStateNormal];
+                strongSelf->_currentSearchIndex = index;
             }];
             [self stopActivityIndicator];
             return Nil;
@@ -70,6 +112,17 @@
         searchTermButton.hidden = YES;
     }
 
+    // Fix for the iPhone X
+    // For some reason, the text view has no border...
+//    if([UIScreen mainScreen].nativeBounds.size.height == 2436) {
+//        self.searchBox.layer.borderColor = [BCoreUtilities colorWithHexString:@"e2e2e2"].CGColor;
+//        self.searchBox.layer.borderWidth = 1;
+//        self.searchBox.layer.cornerRadius = 5;
+//    }
+
+    self.searchBox.keepTopInset.equal = self.navigationController.navigationBar.frame.size.height + [UIApplication sharedApplication].statusBarFrame.size.height + 10 + keepRequired;
+    self.searchBox.placeholder = [NSBundle t:bSearch];
+    
     // Add a tap recognizer to dismiss the keyboard
     _tapRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(viewTapped)];
     
@@ -92,6 +145,8 @@
 }
 
 -(void) viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+    
     [_selectedUsers removeAllObjects];
     
     // Observe for keyboard appear and disappear notifications
@@ -103,7 +158,7 @@
 
 -(void) viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
-    if (!_users.count) {
+    if (!_users.count && _showKeyboardOnLoad) {
         [searchBox becomeFirstResponder];
     }
     
@@ -166,6 +221,7 @@
     // Get the user
     id<PUser> user = _users[indexPath.row];
     [cell setUser:user];
+    cell.statusImageView.hidden = YES;
         
     if ([_selectedUsers containsObject:user]) {
         cell.accessoryType = UITableViewCellAccessoryCheckmark;
@@ -194,39 +250,44 @@
     [self startActivityIndicator];
     
     NSArray * indexes = _currentSearchIndex.value ? @[_currentSearchIndex.value] : Nil;
-    
+
+    __weak __typeof__(self) weakSelf = self;
+
     [NM.search usersForIndexes:indexes withValue:text limit: 10 userAdded: ^(id<PUser> user) {
-        
+        __typeof__(self) strongSelf = weakSelf;
+
         // Make sure we run this on the main thread
         dispatch_async(dispatch_get_main_queue(), ^{
             
             if (user != NM.currentUser) {
                 // Only display a user if they have a name set
-                
+            
                 // Check the users entityID to make sure they're not in the exclude list
-                if (!_usersToExclude || ![_usersToExclude containsObject:user]) {
+                if (!strongSelf->_usersToExclude || ![strongSelf->_usersToExclude containsObject:user]) {
                     if (user.name.length) {
-                        if (![_users containsObject:user]) {
-                            [_users addObject:user];
+                        if (![strongSelf->_users containsObject:user]) {
+                            [strongSelf->_users addObject:user];
                         }
                     }
                 }
             }
-            _users.sortUsersInAlphabeticalOrder;
+            [strongSelf->_users sortUsersInAlphabeticalOrder];
             
-            [tableView reloadData];
+            [strongSelf.tableView reloadData];
             
         });
         
     }].thenOnMain(^id(id success) {
+        __typeof__(self) strongSelf = weakSelf;
+
+        strongSelf.noUsersFoundView.hidden = strongSelf->_users.count > 0;
         
-        self.noUsersFoundView.hidden = _users.count > 0;
-        
-        [tableView reloadData];
-        [self stopActivityIndicator];
+        [strongSelf.tableView reloadData];
+        [strongSelf stopActivityIndicator];
         return Nil;
     }, ^id(NSError * error) {
-        [self stopActivityIndicator];
+        __typeof__(self) strongSelf = weakSelf;
+        [strongSelf stopActivityIndicator];
         return error;
     });
 }

@@ -34,6 +34,7 @@
 @protocol PHookHandler;
 @protocol PUsersHandler;
 
+// Depricated: Use bHookLogout (and hook system) instead
 #define bNotificationLogout @"bNLogout"
 
 #define bNotificationMessageAdded @"bNMessageAdded"
@@ -45,6 +46,12 @@
 #define bNotificationMessageUpdated @"bNMessageUpdated"
 #define bNotificationMessageUpdatedKeyMessage @"bNMessageUpdatedKeyMessage"
 
+#define bNotificationFlaggedMessageAdded @"bNFlaggedMessageAdded"
+#define bNotificationFlaggedMessageAdded_PMessage @"bNFlaggedMessageAdded_PMessage"
+
+#define bNotificationFlaggedMessageRemoved @"bNFlaggedMessageRemoved"
+#define bNotificationFlaggedMessageRemoved_PMessage @"bNFlaggedMessageRemoved_PMessage"
+
 #define bNotificationUserUpdated @"bNUserUpdated"
 #define bNotificationUserUpdated_PUser @"bNUserUpdated_PUser"
 
@@ -52,7 +59,11 @@
 #define bNotificationThreadDeleted @"bNThreadDeleted"
 #define bNotificationBadgeUpdated @"bNBadgeUpdated"
 
+#define bNotificationPresentChatView @"bNPresentChatView"
+#define bNotificationPresentChatView_PThread @"bNPresentChatView_PThread"
+
 #define bNotificationThreadUsersUpdated @"bNThreadUsersUpdated"
+#define bNotificationThreadMetaUpdated @"bNThreadMetaUpdated"
 
 #define bNotificationReadReceiptUpdated @"bNReadReceiptUpdated"
 #define bNotificationReadReceiptUpdatedKeyMessage @"bNReadReceiptUpdatedKeyMessage"

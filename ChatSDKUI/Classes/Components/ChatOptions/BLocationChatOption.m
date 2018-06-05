@@ -23,51 +23,12 @@
 }
 
 -(RXPromise *) execute {
-    
-    if(_promise) {
-        return _promise;
+    if(_action == Nil) {
+        _action = [[BSelectLocationAction alloc] init];
     }
-    else {
-        _promise = [RXPromise new];
-    }
-
-    if(!_locationManager) {
-        _locationManager = [[CLLocationManager alloc] init];
-        
-        if ([CLLocationManager authorizationStatus] == kCLAuthorizationStatusNotDetermined &&
-            [_locationManager respondsToSelector:@selector(requestWhenInUseAuthorization)]) {
-            [_locationManager requestWhenInUseAuthorization];
-        }
-        
-        _locationManager.delegate = self;
-        _locationManager.distanceFilter = kCLDistanceFilterNone;
-        _locationManager.desiredAccuracy = kCLLocationAccuracyBest;
-    }
-    [_locationManager startUpdatingLocation];
-    
-    return _promise;
+    return [_action execute].thenOnMain(^id(id location) {
+        return [self.parent.delegate sendLocationMessage:location];
+    }, Nil);
 }
-
-- (void) locationManager:(CLLocationManager *)manager didUpdateLocations:(NSArray *)locations {
-    
-    [manager stopUpdatingLocation];
-    if(_locationManager) {
-        _locationManager = nil;
-        
-        CLLocation * location = locations.lastObject;
-        
-        if (NM.locationMessage) {
-            [_promise resolveWithResult:[self.parent.delegate sendLocationMessage:location]];
-            
-            [self.parent.delegate reloadData];
-            _promise = Nil;
-        }
-    }
-    if(_promise) {
-        [_promise resolveWithResult: Nil];
-        _promise = Nil;
-    }
-}
-
 
 @end

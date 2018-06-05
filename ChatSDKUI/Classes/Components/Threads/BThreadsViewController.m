@@ -22,8 +22,9 @@
 @implementation BThreadsViewController
 
 @synthesize tableView;
+@synthesize threads = _threads;
 
-- (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
+-(instancetype) initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
 {
     self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
     if (self) {
@@ -60,6 +61,9 @@
 }
 
 -(void) addObservers {
+    [self removeObservers];
+    __weak __typeof__(self) weakSelf = self;
+
     [_notificationList add:[[NSNotificationCenter defaultCenter] addObserverForName:bNotificationMessageAdded
                                                                          object:Nil
                                                                           queue:Nil
@@ -78,7 +82,7 @@
                                                                              }
                                                                              
                                                                              // Move thread to top
-                                                                             [self reloadData];
+                                                                             [weakSelf reloadData];
                                                                          });
     }]];
     [_notificationList add:[[NSNotificationCenter defaultCenter] addObserverForName:bNotificationMessageRemoved
@@ -86,7 +90,7 @@
                                                                           queue:Nil
                                                                      usingBlock:^(NSNotification * notification) {
                                                                          dispatch_async(dispatch_get_main_queue(), ^{
-                                                                             [self reloadData];
+                                                                             [weakSelf reloadData];
                                                                          });
     }]];
     [_notificationList add:[[NSNotificationCenter defaultCenter] addObserverForName:bNotificationUserUpdated
@@ -94,7 +98,7 @@
                                                                        queue:Nil
                                                                   usingBlock:^(NSNotification * notification) {
                                                                       dispatch_async(dispatch_get_main_queue(), ^{
-                                                                          [self reloadData];
+                                                                          [weakSelf reloadData];
                                                                       });
     }]];
     [_notificationList add:[[NSNotificationCenter defaultCenter] addObserverForName:kReachabilityChangedNotification
@@ -102,7 +106,7 @@
                                                                                      queue:Nil
                                                                                 usingBlock:^(NSNotification * notification) {
                                                                                     dispatch_async(dispatch_get_main_queue(), ^{
-                                                                                        [self updateButtonStatusForInternetConnection];
+                                                                                        [weakSelf updateButtonStatusForInternetConnection];
                                                                                     });
     }]];
     
@@ -113,7 +117,7 @@
                                                                         dispatch_async(dispatch_get_main_queue(), ^{
                                                                             id<PThread> thread = notification.userInfo[bNotificationTypingStateChangedKeyThread];
                                                                             _threadTypingMessages[thread.entityID] = notification.userInfo[bNotificationTypingStateChangedKeyMessage];
-                                                                            [self reloadData];
+                                                                            [weakSelf reloadData];
                                                                         });
     }]];
     [_notificationList add:[[NSNotificationCenter defaultCenter] addObserverForName:bNotificationThreadDeleted
@@ -121,7 +125,7 @@
                                                                          queue:Nil
                                                                     usingBlock:^(NSNotification * notification) {
                                                                         dispatch_async(dispatch_get_main_queue(), ^{
-                                                                            [self reloadData];
+                                                                            [weakSelf reloadData];
                                                                         });
     }]];
 }
@@ -182,30 +186,9 @@
     
     NSString * text = [NSBundle t:bNoMessages];
     
-    id<PMessage> message = Nil;
-    
-    if (thread.allMessages.count) {
-        // Get the last message
-        message = [thread messagesOrderedByDateDesc].firstObject;
-        
-        if (message.type.intValue == bMessageTypeImage) {
-            text = [NSBundle core_t:bImageMessage];
-        }
-        else if(message.type.intValue == bMessageTypeLocation) {
-            text = [NSBundle core_t:bLocationMessage];
-        }
-        else if(message.type.intValue == bMessageTypeAudio) {
-            text = [NSBundle core_t:bAudioMessage];
-        }
-        else if(message.type.intValue == bMessageTypeVideo) {
-            text = [NSBundle core_t:bVideoMessage];
-        }
-        else if(message.type.intValue == bMessageTypeSticker) {
-            text = [NSBundle core_t:bStickerMessage];
-        }
-        else {
-            text = message.textString;
-        }
+    id<PMessage> lastMessage = thread.lazyLastMessage;
+    if (lastMessage) {
+        text = [NSBundle textForMessage:lastMessage];
     }
     
     if (threadDate) {
@@ -214,12 +197,28 @@
     else {
         cell.dateLabel.text = @"";
     }
+    
+    if([BChatSDK config].threadTimeFont) {
+        cell.dateLabel.font = [BChatSDK config].threadTimeFont;
+    }
+    
+    if([BChatSDK config].threadTitleFont) {
+        cell.titleLabel.font = [BChatSDK config].threadTitleFont;
+    }
+
+    if([BChatSDK config].threadSubtitleFont) {
+        cell.messageTextView.font = [BChatSDK config].threadSubtitleFont;
+    }
 
     cell.titleLabel.text = thread.displayName ? thread.displayName : [NSBundle t: bDefaultThreadName];
         
     cell.profileImageView.image = thread.imageForThread;
     
-    cell.unreadView.hidden = !thread.unreadMessageCount;
+//    cell.unreadView.hidden = !thread.unreadMessageCount;
+    
+    int unreadCount = thread.unreadMessageCount;
+    cell.unreadMessagesLabel.hidden = !unreadCount;
+    cell.unreadMessagesLabel.text = [@(unreadCount) stringValue];
     
     // Add the typing indicator
     NSString * typingText = _threadTypingMessages[thread.entityID];
@@ -241,12 +240,35 @@
 }
 
 -(void) pushChatViewControllerWithThread: (id<PThread>) thread {
-    
     if (thread) {
         UIViewController * vc = [[BInterfaceManager sharedManager].a chatViewControllerWithThread:thread];
         [self.navigationController pushViewController:vc animated:YES];
         // Stop multiple touches opening multiple chat views
         [tableView setUserInteractionEnabled:NO];
+    }
+}
+
+// Fix divider lines not being full width on the iPad
+-(void)tableView:(UITableView *)tableView willDisplayCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    if ([cell respondsToSelector:@selector(setSeparatorInset:)]) {
+        [cell setSeparatorInset:UIEdgeInsetsZero];
+    }
+    
+    if ([cell respondsToSelector:@selector(setLayoutMargins:)]) {
+        [cell setLayoutMargins:UIEdgeInsetsZero];
+    }
+}
+
+-(void)viewDidLayoutSubviews
+{
+    [super viewDidLayoutSubviews];
+    if ([self.tableView respondsToSelector:@selector(setSeparatorInset:)]) {
+        [self.tableView setSeparatorInset:UIEdgeInsetsZero];
+    }
+    
+    if ([self.tableView respondsToSelector:@selector(setLayoutMargins:)]) {
+        [self.tableView setLayoutMargins:UIEdgeInsetsZero];
     }
 }
 
@@ -270,7 +292,6 @@
 }
 
 - (BOOL)tableView:(UITableView *)tableView canEditRowAtIndexPath:(NSIndexPath *)indexPath {
-    
     return !_slideToDeleteDisabled;
 }
 
@@ -285,6 +306,11 @@
     
     BOOL connected = [Reachability reachabilityForInternetConnection].isReachable;
     self.navigationItem.rightBarButtonItem.enabled = connected;
+}
+
+-(void) dealloc {
+    tableView.delegate = Nil;
+    tableView.dataSource = Nil;
 }
 
 @end

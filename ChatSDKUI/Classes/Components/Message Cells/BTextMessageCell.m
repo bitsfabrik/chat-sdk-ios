@@ -16,7 +16,7 @@
 
 @synthesize textView;
 
-- (id)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier
+-(instancetype) initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier
 {
     self = [super initWithStyle:style reuseIdentifier:reuseIdentifier];
     if (self) {
@@ -28,6 +28,11 @@
         textView.editable = NO;
         textView.userInteractionEnabled = YES;
         textView.scrollEnabled = YES;
+
+        textView.font = [UIFont systemFontOfSize:bDefaultFontSize];
+        if([BChatSDK config].messageTextFont) {
+            textView.font = [BChatSDK config].messageTextFont;
+        }
         
         UIColor * linkColor = [[BInterfaceManager sharedManager].a colorForName:bColorMessageLink];
         if(linkColor) {
@@ -46,9 +51,17 @@
     [super setMessage:message withColorWeight:colorWeight];
     
     textView.text = message.textString;
-    textView.font = [[[BInterfaceManager sharedManager] a] messageTextFont];
     
-    textView.textColor = [BCoreUtilities colorWithHexString:bDefaultTextColor];
+    if([BChatSDK config].messageTextColorMe && message.userModel.isMe) {
+        textView.textColor = [BCoreUtilities colorWithHexString:[BChatSDK config].messageTextColorMe];
+    }
+    else if([BChatSDK config].messageTextColorReply && !message.userModel.isMe) {
+        textView.textColor = [BCoreUtilities colorWithHexString:[BChatSDK config].messageTextColorReply];
+    }
+    else
+    {
+        textView.textColor = [BCoreUtilities colorWithHexString:bDefaultTextColor];
+    }
 }
 
 

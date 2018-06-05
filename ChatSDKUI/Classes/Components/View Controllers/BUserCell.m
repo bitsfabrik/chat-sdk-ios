@@ -31,14 +31,11 @@
     
     //self.profileImageView.layer.borderWidth = 2;
     self.statusImageView.layer.cornerRadius = 6;
-    self.stateLabel.text = @"";
-
-    if (user.thumbnail) {
-        self.profileImageView.image = [UIImage imageWithData:user.thumbnail];
-    }
-    else {
-        self.profileImageView.image = user.defaultImage;
-    }
+    [self setStateLabelText:@""];
+    
+    [self.profileImageView sd_setImageWithURL:[NSURL URLWithString: user.imageURL]
+                             placeholderImage:user.imageAsImage
+                                      options:SDWebImageLowPriority & SDWebImageScaleDownLargeImages];
     
     self.title.text = user.name;
     self.subtitle.text = user.statusText;
@@ -49,6 +46,16 @@
     else {
         [self setOffline];
     }
+}
+
+-(void) setStateLabelText: (NSString *) state {
+    if(!state || state.length == 0) {
+        [self.statusImageView keepVerticallyCentered];
+    }
+    else {
+        self.statusImageView.keepBottomOffsetTo(self.stateLabel).equal = 5;
+    }
+    self.stateLabel.text = state;
 }
 
 -(void) setOnline {

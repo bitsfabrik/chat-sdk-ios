@@ -13,6 +13,8 @@
 @protocol PThread;
 @protocol PChatOptionsHandler;
 @protocol PSearchViewController;
+@protocol PSendBar;
+@protocol BChatOptionDelegate;
 @class BChatViewController;
 @class BFriendsListViewController;
 @class BChatOption;
@@ -24,12 +26,15 @@
 -(UIViewController *) publicThreadsViewController;
 -(UIViewController *) contactsViewController;
 -(UIViewController *) profileViewControllerWithUser: (id<PUser>) user ;
+-(UIViewController *) appTabBarViewController;
+-(UIViewController *) eulaViewController;
 -(BFriendsListViewController *) friendsViewControllerWithUsersToExclude: (NSArray *) usersToExclude;
 -(BChatViewController *) chatViewControllerWithThread: (id<PThread>) thread;
--(BTextInputView *) textInputView;
 -(NSArray *) defaultTabBarViewControllers;
+-(UIView<PSendBar> *) sendBarView;
 
 -(UIViewController *) searchViewControllerWithType: (NSString *) type excludingUsers: (NSArray *) users usersAdded: (void(^)(NSArray * users)) usersAdded;
+-(UIViewController<PSearchViewController> *) searchViewControllerExcludingUsers: (NSArray *) users usersAdded: (void(^)(NSArray * users)) usersAdded;
 
 -(void) addSearchViewController: (UIViewController<PSearchViewController> *) controller withType: (NSString *) type withName: (NSString *) name;
 -(void) removeSearchViewControllerWithType: (NSString *) type;
@@ -40,25 +45,21 @@
 -(NSArray *) tabBarNavigationViewControllers;
 
 -(NSMutableArray *) chatOptions;
--(id<PChatOptionsHandler>) chatOptionsHandlerWithChatViewController: (BChatViewController *) chatViewController;
+-(id<PChatOptionsHandler>) chatOptionsHandlerWithDelegate: (id<BChatOptionDelegate>) delegate;
 -(UIViewController *) usersViewControllerWithThread: (id<PThread>) thread parentNavigationController: (UINavigationController *) parent;
 -(void) addChatOption: (BChatOption *) option;
 -(void) removeChatOption: (BChatOption *) option;
 
 -(void) addTabBarViewController: (UIViewController *) controller atIndex: (int) index;
+-(void) removeTabBarViewControllerAtIndex: (int) index;
+
 -(NSDictionary *) additionalSearchControllerNames;
 -(UIViewController *) settingsViewController;
 
 -(UIColor *) colorForName: (NSString *) name;
 
--(UIColor *) placeholderColor;
--(UIFont *) messageSystemTextFont;
--(UIFont *) messageDateFont;
--(UIFont *) messageNameFont;
--(UIFont *) messageTextFont;
--(NSString *) messageColorMeHex;
--(NSString *) messageColorReplayHex;
--(NSString *) tintColorHex;
+-(BOOL) showLocalNotification: (id) notification;
+-(void) setShowLocalNotifications: (BOOL) shouldShow;
 
 @end
 

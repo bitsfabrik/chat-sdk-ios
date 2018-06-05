@@ -12,6 +12,11 @@
 #import <ChatSDK/ChatCore.h>
 #import <ChatSDK/PElmMessage.h>
 
+#define bReadReceiptWidth 36
+#define bReadReceiptHeight 24
+
+// TODO: Parameterise this
+#define bReadReceiptTopPadding 10
 
 @implementation BMessageCell
 
@@ -19,11 +24,11 @@
 @synthesize message = _message;
 @synthesize delegate;
 
-- (id)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier
+-(instancetype) initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier
 {
     self = [super initWithStyle:style reuseIdentifier:reuseIdentifier];
     if (self) {
-
+        
         // They aren't selectable
         self.selectionStyle = UITableViewCellSelectionStyleDefault;
         
@@ -44,15 +49,24 @@
         [self.contentView addSubview:_profilePicture];
         
         _timeLabel = [[UILabel alloc] initWithFrame:CGRectMake(bTimeLabelPadding, 0, 0, 0)];
-        _timeLabel.font = [[[BInterfaceManager sharedManager] a] messageDateFont];
+        
+        _timeLabel.font = [UIFont italicSystemFontOfSize:12];
+        if([BChatSDK config].messageTimeFont) {
+            _timeLabel.font = [BChatSDK config].messageTimeFont;
+        }
+
         _timeLabel.textColor = [UIColor lightGrayColor];
         _timeLabel.userInteractionEnabled = NO;
         
         [self.contentView addSubview:_timeLabel];
 
         _nameLabel = [[UILabel alloc] initWithFrame:CGRectMake(bTimeLabelPadding, 0, 0, 0)];
-        _nameLabel.font = [[[BInterfaceManager sharedManager] a] messageNameFont];
         _nameLabel.userInteractionEnabled = NO;
+        
+        _nameLabel.font = [UIFont boldSystemFontOfSize:bDefaultUserNameLabelSize];
+        if([BChatSDK config].messageNameFont) {
+            _nameLabel.font = [BChatSDK config].messageNameFont;
+        }
         
         _readMessageImageView = [[UIImageView alloc] initWithFrame:CGRectMake(bTimeLabelPadding, 0, 0, 0)];
         [self setReadStatus:bMessageReadStatusNone];
@@ -106,7 +120,7 @@
     // Set the message for later use
     _message = message;
     
-    BOOL isMine = [[BMessageCache sharedCache] isMine:message];
+    BOOL isMine = message.senderIsMe;
     if (isMine) {
         [self setReadStatus:message.readStatus];
     }
@@ -114,23 +128,21 @@
         [self setReadStatus:bMessageReadStatusHide];
     }
     
-    bMessagePosition position = [[BMessageCache sharedCache] positionForMessage:message];
-    id<PElmMessage> nextMessage = [[BMessageCache sharedCache] nextMessageForMessage:message];
+    bMessagePos position = message.messagePosition;
+    id<PElmMessage> nextMessage = message.lazyNextMessage;
     
     // Set the bubble to be the correct color
     bubbleImageView.image = [[BMessageCache sharedCache] bubbleForMessage:message withColorWeight:colorWeight];
-    
-    // If the image has an image URL
-    //_profilePicture.hidden = YES;
-    //[[AsyncImageLoader sharedLoader] cancelLoadingImagesForTarget:_profilePicture];
 
+    // Hide profile pictures for 1-to-1 threads
+    _profilePicture.hidden = message.thread.type.intValue & bThreadType1to1 && ![BChatSDK config].showUserAvatarsOn1to1Threads;
+    
     // We only want to show the user picture if it is the latest message from the user
-    if (position & bMessagePositionLast) {
+    if (position & bMessagePosLast) {
         if (message.userModel) {
-            _profilePicture.hidden = NO;
             if(message.userModel.imageURL) {
-                [_profilePicture sd_setImageWithURL:message.userModel.imageURL
-                                   placeholderImage:message.userModel.defaultImage];
+                [_profilePicture sd_setImageWithURL:[NSURL URLWithString: message.userModel.imageURL]
+                                   placeholderImage:message.userModel.defaultImage options:SDWebImageLowPriority & SDWebImageScaleDownLargeImages];
             }
             else if (message.userModel.imageAsImage) {
                 [_profilePicture setImage:message.userModel.imageAsImage];
@@ -138,12 +150,6 @@
             else {
                 [_profilePicture setImage:message.userModel.defaultImage];
             }
-            
-            
-//            [message.userModel loadProfileThumbnail:NO].thenOnMain(^id(UIImage * image) {
-//                _profilePicture.image = image;
-//                return image;
-//            },Nil);
         }
         else {
             // If the user doesn't have a profile picture set the default profile image
@@ -154,7 +160,6 @@
     else {
         _profilePicture.image = nil;
     }
-    
     
     if (message.flagged.intValue) {
         _timeLabel.text = [NSBundle t:bFlagged];
@@ -179,13 +184,14 @@
     _nameLabel.hidden = ![_message showUserNameLabelForPosition:position];
     
     // Hide the read receipt view if this is a public thread or if read receipts are disabled
-    _readMessageImageView.hidden = [_message.thread.type intValue] & bThreadFilterPublic || !NM.readReceipt;
+    _readMessageImageView.hidden = _message.thread.type.intValue & bThreadFilterPublic || !NM.readReceipt;
 }
 
 -(void) willDisplayCell {
     
     id<PMessageLayout> l = [BMessageLayout layoutWithMessage:_message];
     
+    // Add an extra margin if there is no profile picture
     float margin = l.bubbleMargin;
     float padding = l.bubblePadding;
     
@@ -245,6 +251,10 @@
 
     BOOL isMine = [_message.userModel isEqual:NM.currentUser];
     
+    // Extra x-margin if the profile picture isn't shown
+    // TODO: Fix this
+    float xMargin =  _profilePicture.image ? 0 : 0;
+    
     // Layout the date label this will be the full size of the cell
     // This will automatically center the text in the y direction
     // we'll set the side using text alignment
@@ -253,9 +263,9 @@
     // We don't want the label getting in the way of the read receipt
     [_timeLabel setViewFrameHeight:l.cellHeight * 0.8];
     
-    [_readMessageImageView setViewFrameWidth:_profilePicture.fw];
-    [_readMessageImageView setViewFrameHeight:_profilePicture.fw * 2 / 3];
-    [_readMessageImageView setViewFrameY:self.fh - _profilePicture.fw * 2 / 3];
+    [_readMessageImageView setViewFrameWidth:bReadReceiptWidth];
+    [_readMessageImageView setViewFrameHeight:bReadReceiptHeight];
+    [_readMessageImageView setViewFrameY:_timeLabel.fh * 2.0 / 3.0];
 
     // Make the width less by the profile picture width means the name and profile picture are inline
     [_nameLabel setViewFrameWidth:self.fw - bTimeLabelPadding * 2.0 - _profilePicture.fw];
@@ -265,7 +275,7 @@
     // The bubble is translated the "margin" to the right of the profile picture
     if (!isMine) {
         [_profilePicture setViewFrameX:_profilePicture.hidden ? 0 : l.profilePicturePadding];
-        [bubbleImageView setViewFrameX:l.bubbleMargin + _profilePicture.fx + _profilePicture.fw];
+        [bubbleImageView setViewFrameX:l.bubbleMargin + _profilePicture.fx + _profilePicture.fw + xMargin];
         [_nameLabel setViewFrameX:bTimeLabelPadding];
         
         _timeLabel.textAlignment = NSTextAlignmentRight;
@@ -273,7 +283,7 @@
     }
     else {
         [_profilePicture setViewFrameX:_profilePicture.hidden ? self.contentView.fw : self.contentView.fw - _profilePicture.fw - l.profilePicturePadding];
-        [bubbleImageView setViewFrameX:_profilePicture.fx - l.bubbleWidth - l.bubbleMargin];
+        [bubbleImageView setViewFrameX:_profilePicture.fx - l.bubbleWidth - l.bubbleMargin - xMargin];
         //[_nameLabel setViewFrameX: bTimeLabelPadding];
         
         _timeLabel.textAlignment = NSTextAlignmentLeft;
@@ -294,8 +304,10 @@
 
 // Change the color of a bubble. This method takes an image and loops over
 // the pixels changing any non-zero pixels to the new color
-+(UIImage *) bubbleWithImage: (UIImage *) bubbleImage withColor: (UIColor *) color {
 
+// MEM1
++(UIImage *) bubbleWithImage: (UIImage *) bubbleImage withColor: (UIColor *) color {
+    
     // Get a CGImageRef so we can use CoreGraphics
     CGImageRef image = bubbleImage.CGImage;
     
@@ -319,8 +331,6 @@
                                                  bitsPerComponent, bytesPerRow, colorSpace,
                                                  kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big);
     
-    CGColorSpaceRelease(colorSpace);
-    
     // Draw the image onto the context
     CGContextDrawImage(context, CGRectMake(0, 0, width, height), image);
     
@@ -338,22 +348,31 @@
         }
     }
     
+    NSInteger leftCapWidth = bubbleImage.leftCapWidth;
+    NSInteger topCapHeight = bubbleImage.topCapHeight;
+    
     // Write from the context to our new image
     // Make sur to copy across the orientation and scale so the bubbles render
     // properly on a retina screen
-    UIImage * newImage = [[UIImage imageWithCGImage:CGBitmapContextCreateImage(context)
+    CGImageRef imageRef = CGBitmapContextCreateImage(context);
+    UIImage * newImage = [[UIImage imageWithCGImage:imageRef
                                               scale:bubbleImage.scale
-                                        orientation:bubbleImage.imageOrientation] stretchableImageWithLeftCapWidth:bubbleImage.leftCapWidth
-                                                                                                             topCapHeight:bubbleImage.topCapHeight];
+                                        orientation:bubbleImage.imageOrientation] stretchableImageWithLeftCapWidth:leftCapWidth
+                                                                                                             topCapHeight:topCapHeight];
     // Free up the memory we used
+    CGImageRelease(imageRef);
     CGContextRelease(context);
     free(data);
+    CGColorSpaceRelease(colorSpace);
     
     return newImage;
 }
 
 -(BOOL) supportsCopy {
     return NO;
+}
+
+-(void) dealloc {
 }
 
 

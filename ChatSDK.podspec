@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = "ChatSDK"
-  s.version          = "4.3.3"
+  s.version          = "4.5.28"
   s.summary          = "Chat SDK - Mobile messaging framework for iOS"
   s.homepage         = "http://chatsdk.co"
   s.license          = { :type => 'Chat SDK License', :file => 'LICENSE.md' }
@@ -8,7 +8,7 @@ Pod::Spec.new do |s|
   s.source           = { :git => "https://github.com/chat-sdk/chat-sdk-ios.git", :tag => s.version.to_s }
   s.module_name      = 'ChatSDK'
 
-  s.platform     = :ios, '7.0'
+  s.platform     = :ios, '8.0'
   s.requires_arc = true
   
   s.default_subspec = 'UI'
@@ -24,6 +24,9 @@ Pod::Spec.new do |s|
 	#   core.dependency 'PromiseKit'
 	  core.dependency 'Reachability', '~> 3.0'
 	  core.dependency 'AFNetworking', '~>3.1.0'
+
+#     core.frameworks = 'CoreLocation'
+      core.frameworks = 'SafariServices'
   
   end
 
@@ -54,9 +57,29 @@ Pod::Spec.new do |s|
 	  ui.dependency 'DateTools', '~> 1.0'
 	  ui.dependency 'TOCropViewController', '~> 2.0'
 	  ui.dependency 'Hakawai', '~> 5.0.0'
-  
+	  ui.dependency 'ChatSDKKeepLayout'
+	  ui.dependency 'Toast', '~>4.0.0'
+
 	  ui.dependency 'ChatSDK/CoreData'
+	  
+	  ui.frameworks = 'CoreLocation'
   
   end
+
+#  s.subspec 'FirebaseAdapter' do |fb|
+# 
+# 	fb.source_files = ['ChatSDKFirebase/FirebaseNetworkAdapter/Classes/**/*']
+# 
+#     fb.dependency 'Firebase/Core'
+#     fb.dependency 'Firebase/Auth'
+#     fb.dependency 'Firebase/Database'
+#     fb.dependency 'Firebase/Storage'
+#     fb.dependency 'Firebase/Messaging'
+#  
+# #     fb.vendored_frameworks = "ChatSDKFirebaseAdapter/Frameworks/FirebaseAdapter.framework"
+#   
+# 	fb.dependency 'ChatSDK/Core'
+#   
+#   end
     
 end

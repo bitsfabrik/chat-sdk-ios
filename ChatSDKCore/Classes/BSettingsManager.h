@@ -12,7 +12,6 @@
 
 +(NSString *) twitterApiKey;
 +(NSString *) facebookAppId;
-+(NSString *) googleApiKey;
 +(NSString *) googleClientKey;
 
 +(NSString *) twitterSecret;
@@ -25,7 +24,6 @@
 +(NSString *) parseClientKey;
 +(BOOL) anonymousLoginEnabled;
 
-+(BOOL) appBadgeEnabled;
 +(BOOL) userChatInfoEnabled;
 
 +(NSString *) timeFormat;

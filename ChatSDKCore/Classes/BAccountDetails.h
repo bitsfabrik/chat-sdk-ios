@@ -14,13 +14,15 @@
 @property (nonatomic, readwrite) NSString * username;
 @property (nonatomic, readwrite) NSString * password;
 @property (nonatomic, readwrite) NSString * token;
+@property (nonatomic, readwrite) NSString * name;
+@property (nonatomic, readwrite) NSMutableDictionary * meta;
 
-+(id) username: (NSString *) username password: (NSString *) password;
-+(id) signUp: (NSString *) username password: (NSString *) password;
-+(id) facebook;
-+(id) twitter;
-+(id) google;
-+(id) anonymous;
-+(id) token: (NSString *) token;
++(instancetype) username: (NSString *) username password: (NSString *) password;
++(instancetype) signUp: (NSString *) username password: (NSString *) password;
++(instancetype) facebook;
++(instancetype) twitter;
++(instancetype) google;
++(instancetype) anonymous;
++(instancetype) token: (NSString *) token;
 
 @end

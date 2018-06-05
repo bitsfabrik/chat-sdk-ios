@@ -9,7 +9,6 @@
 #ifndef ChatUI_h
 #define ChatUI_h
 
-#import "KeepLayout.h"
 #import <MBProgressHUD/MBProgressHUD.h>
 #import <TOCropViewController/TOCropViewController.h>
 #import <SDWebImage/UIImageView+WebCache.h>
@@ -19,6 +18,7 @@
 #import <RXPromise/RXPromise.h>
 #import <Reachability/Reachability.h>
 #import <Hakawai/Hakawai-umbrella.h>
+#import <KeepLayout/KeepLayout.h>
 
 // Elements
 
@@ -37,7 +37,6 @@
 
 #import <ChatSDK/BThreadCell.h>
 
-
 #import <ChatSDK/BProfileTableViewController.h>
 #import <ChatSDK/BChatViewController.h>
 #import <ChatSDK/BFriendsListViewController.h>
@@ -47,6 +46,7 @@
 #import <ChatSDK/BProfileTableViewController.h>
 #import <ChatSDK/BPrivateThreadsViewController.h>
 #import <ChatSDK/BPublicThreadsViewController.h>
+#import <ChatSDK/BFlaggedMessagesViewController.h>
 #import <ChatSDK/BContactsViewController.h>
 #import <ChatSDK/BImagePickerViewController.h>
 #import <ChatSDK/BImageViewController.h>
@@ -58,6 +58,9 @@
 #import <ChatSDK/BAppTabBarController.h>
 #import <ChatSDK/BDefaultInterfaceAdapter.h>
 #import <ChatSDK/BMessageSection.h>
+
+#import <ChatSDK/BMapViewWrapper.h>
+#import <ChatSDK/BMapViewManager.h>
 
 #import <ChatSDK/BTextInputView.h>
 
@@ -74,5 +77,14 @@
 #import <ChatSDK/PChatOptionsHandler.h>
 #import <ChatSDK/BChatOptionsActionSheet.h>
 #import <ChatSDK/BMessageCache.h>
+#import <ChatSDK/BMainControllerLifecycleHelper.h>
+
+#import <ChatSDK/PAction.h>
+#import <ChatSDK/BSelectLocationAction.h>
+#import <ChatSDK/BSelectMediaAction.h>
+#import <ChatSDK/BDefaultUIModule.h>
+
+#import <Toast/Toast.h>
+
 
 #endif /* ChatUI_h */

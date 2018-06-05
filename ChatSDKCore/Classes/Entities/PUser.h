@@ -8,15 +8,15 @@
 
 #import "BAccountTypes.h"
 
-#import "BUserConnectionType.h"
-#import "PElmUser.h"
+#import <ChatSDK/BUserConnectionType.h>
+#import <ChatSDK/PHasMeta.h>
 
 @class RXPromise;
 @protocol PUserConnection;
 @protocol PThread;
 @protocol PUserAccount;
 @protocol PEntity;
-@protocol PHasMeta;
+@protocol PElmUser;
 
 @protocol PUser <PEntity, PHasMeta, PElmUser>
 
@@ -63,16 +63,8 @@
 -(void) setStatusText: (NSString *) statusText;
 -(NSString *) statusText;
 
--(void) setMetaString: (NSString *) value forKey: (NSString *) key;
--(NSString *) metaStringForKey: (NSString *) key;
-
--(void) setMetaDictionary: (NSDictionary *) dict;
--(NSDictionary *) metaDictionary;
-
 //-(void) addContact: (id<PUser>) user;
 -(NSArray *) getContacts;
--(void) setMetaValue: (id) value forKey: (NSString *) key;
--(id) metaValueForKey: (NSString *) key;
 
 -(void) setMessageColor: (NSString *) color;
 -(NSString *) messageColor;
@@ -91,7 +83,7 @@
 -(void) setPhoneNumber: (NSString *) phoneNumber;
 -(NSString *) phoneNumber;
 
--(NSArray<PThread> *) threads;
+-(NSArray *) threads;
 
 -(int) unreadMessageCount;
 
@@ -101,14 +93,21 @@
 
 -(id<PUser>) model;
 
--(NSArray<PUser> *) contactsWithType: (bUserConnectionType) type;
+-(NSArray *) contactsWithType: (bUserConnectionType) type;
 -(void) addConnection: (id<PUserConnection>) connection;
 -(void) removeConnection: (id<PUserConnection>) connection;
 
--(NSArray<PUserConnection> *) connectionsWithType: (bUserConnectionType) type;
+-(NSArray *) connectionsWithType: (bUserConnectionType) type;
 
 -(BOOL) isMe;
 
+// Needed for CocoaPods install
+-(NSDictionary *) metaDictionary;
+-(void) setMetaDictionary: (NSDictionary *) meta;
+
+@optional
+
+-(void) optimize;
 
 @end
 

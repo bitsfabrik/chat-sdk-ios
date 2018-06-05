@@ -9,9 +9,9 @@
 #ifndef PUserConnection_h
 #define PUserConnection_h
 
-#import "BUserConnectionType.h"
-#import "PHasMeta.h"
 #import <ChatSDK/bSubscriptionType.h>
+#import <ChatSDK/BUserConnectionType.h>
+#import <ChatSDK/PHasMeta.h>
 
 @protocol PUser;
 @protocol PGroup;

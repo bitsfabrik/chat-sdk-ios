@@ -9,14 +9,25 @@
 #import "BAbstractCoreHandler.h"
 
 #import <ChatSDK/ChatCore.h>
+#import <Foundation/Foundation.h>
 
 @implementation BAbstractCoreHandler
 
--(id) init {
+-(instancetype) init {
     if ((self = [super init])) {
         // Start checking if we are connected to the internet
         [[Reachability reachabilityForInternetConnection] startNotifier];
         
+        [[NSNotificationCenter defaultCenter] addObserverForName:bNotificationLogout
+                                                          object:Nil
+                                                           queue:Nil
+                                                      usingBlock:^(NSNotification * sender) {
+                                                          // Resets the view which the tab bar loads on
+                                                          _currentUser = Nil;
+                                                      }];
+        
+
+
     }
     return self;
 }
@@ -29,7 +40,6 @@
     id<PMessage> message = [[BStorageManager sharedManager].a createEntity:bMessageEntity];
     
     id<PThread> thread = [[BStorageManager sharedManager].a fetchEntityWithID:threadID withType:bThreadEntity];
-    [thread addMessage: message];
     
     message.type = @(bMessageTypeText);
     [message setTextAsDictionary:@{bMessageTextKey: text}];
@@ -40,6 +50,8 @@
     message.read = @YES;
     message.flagged = @NO;
     message.metaDictionary = meta;
+
+    [thread addMessage: message];
     
     return [self sendMessage:message];
 }
@@ -71,9 +83,10 @@
 }
 
 -(NSArray *) threadsWithType:(bThreadType)type {
-    return [self threadsWithType:type includeDeleted:NO includeEmpty:NO];
+    return [self threadsWithType:type includeDeleted:NO includeEmpty:[BChatSDK shared].configuration.showEmptyChats];
 }
 
+// TODO: Optimize this
 -(NSArray *) threadsWithType:(bThreadType)type includeDeleted: (BOOL) includeDeleted includeEmpty: (BOOL) includeEmpty {
     
     NSMutableArray * threads = [NSMutableArray new];
@@ -81,7 +94,7 @@
     
     for(id<PThread> thread in allThreads) {
         if(thread.type.intValue & bThreadFilterPrivate) {
-            if(thread.type.intValue & type  && (!thread.deleted_.boolValue || includeDeleted) && (thread.allMessages.count || includeEmpty)) {
+            if(thread.type.intValue & type  && (!thread.deleted_.boolValue || includeDeleted) && (thread.hasMessages || includeEmpty)) {
                 [threads addObject:thread];
             }
         }
@@ -93,7 +106,7 @@
     }
     
     [threads sortUsingComparator:^(id<PThread> t1, id<PThread> t2) {
-        return [t2.lastMessageAdded compare:t1.lastMessageAdded];
+        return [t2.orderDate compare:t1.orderDate];
     }];
     
     return threads;
@@ -101,6 +114,10 @@
 
 -(void) save {
     [[BStorageManager sharedManager].a save];
+}
+
+-(void) saveToStore {
+    [[BStorageManager sharedManager].a saveToStore];
 }
 
 -(void) sendLocalSystemMessageWithText:(NSString *)text withThreadEntityID:(NSString *)threadID {
@@ -119,14 +136,15 @@
                                    bMessageTextKey: text}];
     
     id<PThread> thread = [[BStorageManager sharedManager].a fetchEntityWithID:threadID withType:bThreadEntity];
-    [thread addMessage: message];
 
     message.date = [NSDate date];
     message.userModel = self.currentUserModel;
     message.delivered = @YES;
     message.read = @YES;
     message.flagged = @NO;
-    
+
+    [thread addMessage: message];
+
     dispatch_async(dispatch_get_main_queue(), ^{
         [[NSNotificationCenter defaultCenter] postNotificationName:bNotificationMessageAdded
                                                             object:Nil
@@ -153,7 +171,14 @@
  * @brief Return the current user data
  */
 -(id<PUser>) currentUserModel {
-    assert(NO);
+    NSString * currentUserID = NM.auth.currentUserEntityID;
+    if (!_currentUser) {
+        _currentUser = [[BStorageManager sharedManager].a fetchEntityWithID:currentUserID
+                                                                   withType:bUserEntity];
+        [_currentUser optimize];
+        [self save];
+    }
+    return _currentUser;
 }
 
 // TODO: Consider removing / refactoring this
@@ -209,14 +234,14 @@
 /**
  * @brief Add users to a thread
  */
--(RXPromise *) addUsers: (NSArray<PUser> *) userIDs toThread: (id<PThread>) threadModel {
+-(RXPromise *) addUsers: (NSArray *) users toThread: (id<PThread>) threadModel {
     assert(NO);
 }
 
 /**
  * @brief Remove users from a thread
  */
--(RXPromise *) removeUsers: (NSArray<PUser> *) userIDs fromThread: (id<PThread>) threadModel {
+-(RXPromise *) removeUsers: (NSArray *) users fromThread: (id<PThread>) threadModel {
     assert(NO);
 }
 
@@ -244,5 +269,90 @@
 -(RXPromise *) joinThread: (id<PThread>) thread {
     assert(NO);
 }
+
+- (void)setUserOffline {
+    assert(NO);
+}
+
+-(id<PThread>) fetchThreadWithUsers: (NSArray *) users {
+    id<PUser> currentUser = self.currentUserModel;
+    
+    NSMutableArray * usersToAdd = [NSMutableArray arrayWithArray:users];
+    [usersToAdd removeObject:currentUser];
+    id<PUser> otherUser = usersToAdd.firstObject;
+    [usersToAdd addObject:currentUser];
+    
+    // If there are only two users check to see if a thread already exists
+    if (usersToAdd.count == 2) {
+        
+        // Check to see if we already have a chat with this user
+        id<PThread> jointThread = Nil;
+        
+        NSSet * usersToAddSet = [NSSet setWithArray:usersToAdd];
+        
+        // Check to see if a thread already exists with these
+        // two users
+        for (id<PThread> thread in [NM.core threadsWithType:bThreadType1to1 includeDeleted:YES includeEmpty:YES]) {
+            if ([thread.users isEqual:usersToAddSet]) {
+                jointThread = thread;
+                break;
+            }
+        }
+        
+        // Complete with the thread
+        if(jointThread) {
+            [jointThread setDeleted: @NO];
+            return jointThread;
+        }
+    }
+    return Nil;
+}
+
+-(id<PThread>) fetchOrCreateThreadWithUsers: (NSArray *) users name: (NSString *) name {
+    id<PThread> thread = [self fetchThreadWithUsers:users];
+    if (!thread) {
+        thread = [self createThreadWithUsers:users name:name];
+    }
+    return thread;
+}
+
+-(id<PThread>) createThreadWithUsers: (NSArray *) users name: (NSString *) name {
+    id<PUser> currentUser = self.currentUserModel;
+    
+    NSMutableArray * usersToAdd = [NSMutableArray arrayWithArray:users];
+    [usersToAdd removeObject:currentUser];
+    [usersToAdd addObject:currentUser];
+    
+    // Before we create the thread start an undo grouping
+    // that means that if it fails we can undo changed to the database
+    //[[BStorageManager sharedManager].a beginUndoGroup];
+    
+    id<PThread> threadModel = [[BStorageManager sharedManager].a createEntity:bThreadEntity];
+    threadModel.creationDate = [NSDate date];
+    threadModel.creator = currentUser;
+    threadModel.type = usersToAdd.count == 2 ? @(bThreadType1to1) : @(bThreadTypePrivateGroup);
+    threadModel.name = name;
+    
+    for (id<PUser> user in usersToAdd) {
+        [threadModel addUser:user];
+    }
+    
+    return threadModel;
+}
+
+- (NSArray *)threadsWithUsers:(NSArray *)users type:(bThreadType)type {
+    NSMutableArray * threads = [NSMutableArray new];
+
+    NSSet * usersSet = [NSSet setWithArray:users];
+
+    for (id<PThread> thread in [NM.core threadsWithType:type]) {
+        if([usersSet isEqual:thread.users]) {
+            [threads addObject:thread];
+        }
+    }
+
+    return threads;
+}
+
 
 @end

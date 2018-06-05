@@ -9,27 +9,30 @@
 #import <Foundation/Foundation.h>
 #import <CoreData/CoreData.h>
 #import <ChatSDK/PMessage.h>
-#import <ChatSDK/PEntity.h>
 #import <ChatSDK/PMessageWrapper.h>
 
-@class CDThread, CDUser;
+@class CDUser, CDThread;
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface CDMessage : NSManagedObject<PEntity, PMessage, PMessageWrapper>
+@interface CDMessage : NSManagedObject<PMessage, PMessageWrapper> {
+    NSNumber * _senderIsMe;
+    NSNumber * _position;
+}
 
 -(NSComparisonResult) compare: (id<PMessage>) message;
 
 -(float) getTextHeightWithFont: (UIFont *) font withWidth: (float) width;
 
-+(UIColor *) randomColor;
-
 - (NSURL *)thumbnailURL;
-- (NSURL *)mainImageURL;
+- (NSURL *) imageURL;
 - (NSInteger)imageWidth;
 - (NSInteger)imageHeight;
 
+-(void) updatePosition;
 
+-(void) updateOptimizationProperties;
+-(void) clearOptimizationProperties;
 
 @end
 

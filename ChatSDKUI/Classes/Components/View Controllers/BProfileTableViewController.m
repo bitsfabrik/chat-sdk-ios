@@ -11,6 +11,8 @@
 #import <ChatSDK/ChatCore.h>
 #import <ChatSDK/ChatUI.h>
 
+#define defaultCellHeight 
+
 @interface BProfileTableViewController ()
 
 @end
@@ -25,7 +27,7 @@
 @synthesize user = _user;
 
 // TODO: Move these images to settings
--(id) initWithCoder:(NSCoder *)aDecoder {
+-(instancetype) initWithCoder:(NSCoder *)aDecoder {
     if ((self = [super initWithCoder:aDecoder])) {
         self.title = [NSBundle t:bProfile];
         self.tabBarItem.image = [NSBundle chatUIImageNamed: @"icn_30_profile.png"];
@@ -51,15 +53,15 @@
         _user = currentUser;
     }
     [self updateBlockButton];
+    
+    
 
 }
 
 -(void) loadUserImage {
     if(_user) {
-        UIImage * image = [UIImage imageWithData: _user.thumbnail];
-        image = image ? image : _user.defaultImage;
-
-        [profilePictureButton sd_setImageWithURL:[NSURL URLWithString:[_user metaStringForKey:bUserPictureURLKey]]
+        UIImage * image = _user.imageAsImage;
+        [profilePictureButton sd_setImageWithURL:[NSURL URLWithString:_user.imageURL]
                                         forState:UIControlStateNormal
                                 placeholderImage:image];
     }
@@ -114,9 +116,6 @@
     
     phoneNumberField.text = _user.phoneNumber;
     phoneNumberField.placeholder = [NSBundle t:bPhoneNumber];
-    
-    // Make sure we always have an image set just in case
-    [self refreshUserProfilePicture];
     
     _didLogout = NO;
     
@@ -318,15 +317,6 @@
     profilePictureButton.userInteractionEnabled = isCurrent;
 }
 
-- (void)refreshUserProfilePicture {
-    
-    // This function ensures the user has a profile picture set
-    if (!profilePictureButton.currentBackgroundImage) {
-        UIImage * image = [UIImage imageWithData:_user.image] ? [UIImage imageWithData:_user.image] : [NSBundle chatUIImageNamed:bDefaultPlaceholderImage];
-        [profilePictureButton setImage:image forState:UIControlStateNormal];
-    }
-}
-
 -(void) logout {
     // This will prevent the app from trying to
     _didLogout = YES;
@@ -366,7 +356,7 @@
     self.navigationItem.rightBarButtonItem.enabled = YES;
 }
 
-- (IBAction)blockButtonPressed:(id)sender {
+- (IBAction)rightActionButtonPressed:(id)sender {
     if(NM.blocking) {
         if(![NM.blocking isBlocked:_user.entityID]) {
             [NM.blocking blockUser:_user.entityID].thenOnMain(^id(id success) {
@@ -383,14 +373,20 @@
     }
 }
 
--(void) updateBlockButton {
-    [self.blockButton setTitle:[NSBundle t:bBlock] forState:UIControlStateNormal];
-    [self.blockButton setTitle:[NSBundle t:bUnblock] forState:UIControlStateSelected];
+- (IBAction)leftActionButtonPressed:(id)sender {
 
-    self.blockButton.hidden = !NM.blocking || [_user isEqual:NM.currentUser];
+}
+
+-(void) updateBlockButton {
+    [self.rightActionButton setTitle:[NSBundle t:bBlock] forState:UIControlStateNormal];
+    [self.rightActionButton setTitle:[NSBundle t:bUnblock] forState:UIControlStateSelected];
+
+    self.rightActionButton.hidden = !NM.blocking || [_user isEqual:NM.currentUser];
     if(NM.blocking) {
-        self.blockButton.selected = [NM.blocking isBlocked:_user.entityID];
+        self.rightActionButton.selected = [NM.blocking isBlocked:_user.entityID];
     }
 }
+
+
 
 @end

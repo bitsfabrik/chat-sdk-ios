@@ -14,14 +14,14 @@
 
 @implementation BMessageSection
 
--(id) initWithMessages: (NSArray *) messages {
+-(instancetype) initWithMessages: (NSArray *) messages {
     if((self = [self init])) {
         [_messages addObjectsFromArray:messages];
     }
     return self;
 }
 
--(id) init {
+-(instancetype) init {
     if ((self = [super init])) {
         _messages = [NSMutableArray new];
     }
@@ -33,14 +33,14 @@
     return [message.date dateAgo];
 }
 
--(id<PElmMessage>) messageForRow: (int) row {
+-(id<PElmMessage, PMessageLayout>) messageForRow: (NSInteger) row {
     if (row < _messages.count) {
         return _messages[row];
     }
     return Nil;
 }
 
--(int) rowCount {
+-(NSInteger) rowCount {
     return _messages.count;
 }
 

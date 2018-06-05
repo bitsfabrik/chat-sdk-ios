@@ -7,8 +7,7 @@
 */
 
 "bLogout" = "Logout";
-
-
+"bSettings" = "Settings";
 "bLogginIn" = "Logging in";
 "bProfile" = "Profile";
 "bLoggingOut" = "Logging out";
@@ -20,7 +19,15 @@
 "bThreadCreationError" = "Thread creation failed";
 "bChatRooms" = "Chat Rooms";
 "bPickFriends" = "Pick Friends";
+"bReset" = "Reset";
+"bForgotPassword" = "Reset";
+"bEnterCredentialToResetPassword" = "Enter email to reset password";
+"bPasswordResetSuccess" = "Your password reset has been successful";
+
 "bBack" = "Back";
+"bOpenInMaps" = "Open in maps";
+"bImageSaved" = "Image saved to library";
+"bLocation" = "Location";
 "bCompose" = "Compose";
 "bLoadingFriends" = "Loading Friends";
 "bLoading" = "Loading";
@@ -37,6 +44,8 @@
 "bAdd" = "Add";
 "bCreatingThread" = "Creating thread";
 "bLogoutErrorTitle" = "Logout error";
+"bAuthenticating" = "Authenticating";
+"bOpen" = "Open";
 
 "bFlagged" = "Flagged";
 "bFlag" = "Flag";
@@ -66,8 +75,10 @@
 "bChooseExistingVideo" = "Choose existing video";
 "bCurrentLocation" = "Current location";
 "bSend" = "Send";
+"bReply" = "Reply";
 "bRec" = "Record";
 "bWriteSomething" = "Write something...";
+"bSlideToCancel" = "Slide to cancel...";
 "bName" = "Name";
 "bTapHereForContactInfo" = "tap here for contact info";
 "bPhoneNumber" = "Phone Number";
@@ -108,7 +119,13 @@
 "bNoNewUsersFoundForThisSearch" = "No new users found for this search";
 
 "bDefaultThreadName" = "Thread";
-"bHoldToSendAudioMessageError" = "Hold to send audio message. Audio messages must be longer than 2 seconds";
+"bHoldToSendAudioMessageError" = "Hold to send audio message. Audio messages must be longer than 1 second";
+"bRecording" = "Recording";
+"bSecondsRemaining_" = "Seconds Remaining %i";
+"bCancelled" = "Cancelled";
+
+"bAudioLengthLimitReached" = "Audio Length Limit Reached";
+"bSendOrDiscardRecording" = "Send or discard recording";
 
 "bAddFriend" = "Add Friend";
 "bRemoveFriend" = "Remove Friend";

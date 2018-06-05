@@ -29,7 +29,7 @@ static BAudioManager * manager;
     return manager;
 }
 
--(id) init {
+-(instancetype) init {
     if ((self = [super init])) {
     }
     return self;
@@ -37,27 +37,7 @@ static BAudioManager * manager;
 
 #pragma Playing audio
 
-- (void)playAudioWithURL:(NSURL *)audioURL percent: (CGFloat)percent {
-    
-    // Make sure we have an audio track and it has been loaded
-    if (_currentAudioURL == audioURL && CMTimeGetSeconds(_player.currentItem.duration)) {
-        
-        CGFloat currentPercent = CMTimeGetSeconds(_player.currentItem.currentTime)/CMTimeGetSeconds(_player.currentItem.duration);
-        
-        if (fabsf(percent - currentPercent) > 0.01) {
-            [self setCurrentPlayTime:percent];
-        }
-    }
-    else {
-        
-        _currentAudioURL = audioURL;
-        _player = [AVPlayer playerWithURL: _currentAudioURL];
-        [self setCurrentPlayTime:percent];
-    }
-    
-    _player.rate = 1.0;
-    [_player play];
-}
+
 
 // Load an audio track from a URL and then return the promise when it is ready to play
 - (RXPromise *)loadAudioFromURL: (NSURL *)audioURL {
@@ -80,46 +60,53 @@ static BAudioManager * manager;
 // This observer looks at whether the audio is ready to play then returns the loading promise
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
     
-    if (object == _player && [keyPath isEqualToString:@"status"]) {
-        if (_player.status == AVPlayerStatusReadyToPlay) {
-            
-            NSInteger second = CMTimeGetSeconds(_player.currentItem.asset.duration);
-            
+    if (object == _player && _player.status == AVPlayerStatusReadyToPlay) {
+        
+        [self setCurrentPlayTime:_startAtTimeFraction];
+        
             [_loadingPromise resolveWithResult:nil];
         } else if (_player.status == AVPlayerStatusFailed) {
             [_loadingPromise rejectWithReason:_player.error];
         }
-    }
+}
+
+
+- (void)audioPlayerDidFinishPlaying:(AVAudioPlayer *)player successfully:(BOOL)flag {
+    [self stopAudio];
 }
 
 // Split the previous function into two, this allows us to prepare an audio track without necessarily playing it
-- (void)playAudioWithURL: (NSString *)audioURL {
-    
-    [self prepareToPlayWithURL:audioURL];
-    [self playAudio];
+- (void)playAudioWithURL: (NSURL *)audioURL {
+    [self playAudioWithURL:audioURL percent:0];
 }
 
-// This prepares the app to play with a specific audio URL
-- (void)prepareToPlayWithURL: (NSString *)audioURL {
+- (void)playAudioWithURL:(NSURL *)audioURL percent: (CGFloat)percent {
     
-    // We don't need to prepare it if we are already on it
-    if (![_currentAudioURL.absoluteString isEqualToString:audioURL]) {
-        
+    // Make sure we have an audio track and it has been loaded
+    if (![_currentAudioURL isEqual:audioURL] || !_player) {
+        [self stopAudio];
         _currentAudioURL = audioURL;
         
-        AVPlayerItem * playerItem = [AVPlayerItem playerItemWithURL:[NSURL URLWithString:audioURL]];
-        _player = [[AVPlayer alloc] initWithPlayerItem:playerItem];
-        
+        AVPlayerItem * item = [[AVPlayerItem alloc] initWithURL:audioURL];
+        _player = [[AVPlayer alloc] initWithPlayerItem:item];
+        [_player addObserver:self forKeyPath:@"status" options:0 context:Nil];
         
         // If the headphones are in use don't override the audio
         if (![self isHeadsetPluggedIn]) {
             UInt32 audioRouteOverride = kAudioSessionOverrideAudioRoute_Speaker;
-            AudioSessionSetProperty (kAudioSessionProperty_OverrideAudioRoute, sizeof (audioRouteOverride),&audioRouteOverride);
+            AudioSessionSetProperty (kAudioSessionProperty_OverrideAudioRoute, sizeof (audioRouteOverride), &audioRouteOverride);
         }
         
         // Subscribe to the AVPlayerItem's DidPlayToEndTime notification.
-        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(itemDidFinishPlaying:) name:AVPlayerItemDidPlayToEndTimeNotification object:playerItem];
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(didFinishPlaying:) name:AVPlayerItemDidPlayToEndTimeNotification object:item];
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(didFinishPlaying:) name:AVPlayerItemFailedToPlayToEndTimeErrorKey object:item];
     }
+
+    _startAtTimeFraction = percent;
+    [self setCurrentPlayTime:percent];
+
+    _player.rate = 1.0;
+    [self playAudio];
 }
 
 - (void)playAudio {
@@ -135,18 +122,23 @@ static BAudioManager * manager;
 }
 
 - (void)stopAudio {
-    
-    // We want to stop so unallocate the audio player
-    [[NSNotificationCenter defaultCenter] postNotificationName:bStopAudioNotification object:Nil userInfo:nil];
-    [_player pause];
-    _currentAudioURL = nil;
-    _player = nil;
+    if (_player != nil){
+        // We want to stop so unallocate the audio player
+        [_player removeObserver:self forKeyPath:@"status"];
+        [[NSNotificationCenter defaultCenter] postNotificationName:bStopAudioNotification object:_currentAudioURL.absoluteString userInfo:nil];
+        [_player pause];
+        _currentAudioURL = nil;
+        _player = nil;
+    }
 }
 
 // Will be called when AVPlayer finishes playing playerItem
--(void)itemDidFinishPlaying:(NSNotification *) notification {
-    
-    [self stopAudio];
+-(void) didFinishPlaying:(NSNotification *) notification {
+    AVPlayerItem * item = [notification object];
+    if([[(AVURLAsset *) item.asset URL] isEqual:_currentAudioURL])
+    {
+        [self stopAudio];
+    }
 }
 
 // This allows us to set the play time of the current audio track
@@ -166,7 +158,10 @@ static BAudioManager * manager;
     // By using an increment of 100 instead of 1 we ensure that the miliseconds are preserved
     CMTime newTime = CMTimeMakeWithSeconds(totalTime * percent, 1000);
     
-    [_player.currentItem seekToTime:newTime toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero];
+    CMTime tolerance = CMTimeMakeWithSeconds(1, 1000);
+    
+    [_player.currentItem seekToTime:newTime toleranceBefore:tolerance toleranceAfter:tolerance];
+//    [_player play];
 }
 
 #pragma Recording audio
@@ -215,12 +210,17 @@ static BAudioManager * manager;
     }
 }
 
+-(AVPlayerStatus) playerStatus {
+    return _player.status;
+}
+
 // Return an array of the audio url and the audio duration
 - (void) finishRecording {
-    
-    [_recorder stop];
-    AVAudioSession * audioSession = [AVAudioSession sharedInstance];
-    [audioSession setActive:NO error:nil];
+    if (_recorder) {
+        [_recorder stop];
+        AVAudioSession * audioSession = [AVAudioSession sharedInstance];
+        [audioSession setActive:NO error:nil];
+    }
 }
 
 // This is very slow - might be better to look at the current asset if we can?
@@ -230,9 +230,18 @@ static BAudioManager * manager;
     return CMTimeGetSeconds(time);
 }
 
-- (NSInteger)getAudioTime {
+- (Float64) getCurrentTimeInSeconds {
     CMTime currentTime = _player.currentItem.currentTime;
-    return CMTimeGetSeconds(currentTime);
+    Float64 seconds = CMTimeGetSeconds(currentTime);
+    if (seconds == 0.0 && _startAtTimeFraction > 0) {
+        seconds = self.getTotalTimeInSeconds * _startAtTimeFraction;
+    }
+    return seconds;
+}
+
+- (Float64) getTotalTimeInSeconds {
+    CMTime totalTime = _player.currentItem.duration;
+    return CMTimeGetSeconds(totalTime);
 }
 
 #pragma Other functions

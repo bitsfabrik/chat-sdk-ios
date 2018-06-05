@@ -14,10 +14,10 @@
 #import <FBSDKLoginKit/FBSDKLoginKit.h>
 
 #import <GoogleSignIn/GoogleSignIn.h>
-#import <TwitterKit/TwitterKit.h>
 
 #import "BGoogleHelper.h"
 
+@import TwitterKit;
 
 
 @implementation BFirebaseSocialLoginHandler
@@ -35,32 +35,36 @@
 
 -(void) application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
 
-    // Set up Google
-//    NSError* configureError;
-//    [[GGLContext sharedInstance] configureWithError: &configureError];
-//    NSAssert(!configureError, @"Error configuring Google services: %@", configureError);
-
     [[FBSDKApplicationDelegate sharedInstance] application:application didFinishLaunchingWithOptions:launchOptions];
-
-    [[Twitter sharedInstance] startWithConsumerKey:[BSettingsManager twitterApiKey]
-                                    consumerSecret:[BSettingsManager twitterSecret]];
+    
+    [[Twitter sharedInstance] startWithConsumerKey:BChatSDK.config.twitterApiKey
+                                    consumerSecret:BChatSDK.config.twitterSecret];
 
 }
 
--(void) applicationDidBecomeActive: (UIApplication *) application {
-    //[FBSDKAppEvents activateApp];
+-(BOOL) application:(UIApplication *)app openURL:(NSURL *)url options:(NSDictionary<UIApplicationOpenURLOptionsKey,id> *)options {
+    if ([[url scheme] hasPrefix:@"fb"]) {
+        return [[FBSDKApplicationDelegate sharedInstance] application:app openURL:url options:options];
+    }
+    else if ([[url scheme] hasPrefix:@"twitterkit"]) {
+        return [[Twitter sharedInstance] application:app openURL:url options:options];
+    }
+    return NO;
 }
 
 - (BOOL)application:(UIApplication *)application
             openURL:(NSURL *)url
   sourceApplication:(NSString *)sourceApplication
          annotation:(id)annotation {
-    if ([[url scheme] isEqualToString:[NSString stringWithFormat:@"fb%@", [BSettingsManager facebookAppId]]]) {
+    if ([[url scheme] hasPrefix:@"fb"]) {
         
         return [[FBSDKApplicationDelegate sharedInstance] application:application
                                                               openURL:url
                                                     sourceApplication:sourceApplication
                                                            annotation:annotation];
+    }
+    if ([[url scheme] hasPrefix:@"twitterkit"]) {
+        return YES;
     }
     else {
         return [[GIDSignIn sharedInstance] handleURL:url
@@ -92,6 +96,7 @@
 -(RXPromise *) loginWithTwitter {
    
     RXPromise * promise = [RXPromise new];
+    
     [[Twitter sharedInstance] logInWithCompletion:^(TWTRSession *session, NSError *error) {
         if (!error) {
             [promise resolveWithResult:@[session.authToken, session.authTokenSecret]];
@@ -115,8 +120,9 @@
                 
         // TODO: Check this
         FBSDKLoginManager * manager = [[FBSDKLoginManager alloc] init];
-        [manager logInWithReadPermissions:@[] handler:^(FBSDKLoginManagerLoginResult * result, NSError * error) {
-            if(!error) {
+        
+        [manager logInWithReadPermissions:@[@"public_profile", @"email"] handler:^(FBSDKLoginManagerLoginResult * result, NSError * error) {
+            if(!error && [FBSDKAccessToken currentAccessToken].tokenString != Nil) {
                 [promise resolveWithResult:[FBSDKAccessToken currentAccessToken].tokenString];
             }
             else {

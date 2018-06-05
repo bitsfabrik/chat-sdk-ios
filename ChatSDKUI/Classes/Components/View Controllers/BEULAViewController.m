@@ -22,7 +22,7 @@
 
 @synthesize textView;
 
-- (id)init {
+-(instancetype) init {
     
     self = [super initWithNibName:@"BEULAViewController" bundle:[NSBundle chatUIBundle]];
     if (self) {
@@ -46,7 +46,7 @@
     NSMutableString * EULA = [NSMutableString new];
     
     for (NSString * string in EULATerms) {
-        [EULA appendString:[NSString stringWithFormat:@"%@\n\n", string]];
+          [EULA appendString:[NSString stringWithFormat:@"%@\n\n", string]];
     }
     
     textView.text = EULA;

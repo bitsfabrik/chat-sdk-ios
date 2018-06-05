@@ -42,7 +42,7 @@
 @synthesize addFriendCell;
 @synthesize blockUserCell;
 
--(id) initWithCoder:(NSCoder *)aDecoder {
+-(instancetype) initWithCoder:(NSCoder *)aDecoder {
     if ((self = [super initWithCoder:aDecoder])) {
         self.title = [NSBundle t:bProfile];
         [self updateTabBarIcon];
@@ -55,7 +55,7 @@
 {
     [super viewDidLoad];
     
-    _anonymousProfilePicture = [NSBundle chatUIImageNamed:bDefaultProfileImage];
+    _anonymousProfilePicture = [BChatSDK config].defaultBlankAvatar;
     profilePictureButton.layer.cornerRadius = 50;
     
     self.hideSectionsWithHiddenRows = YES;
@@ -156,17 +156,17 @@
     [addFriendActivityIndicator startAnimating];
     
     // Handle the result:
-    promise_completionHandler_t success = ^id(id success) {
-        addFriendImageView.highlighted = isFriend;
-        addFriendTextView.text = isFriend ? [NSBundle t: bRemoveFriend] : [NSBundle t:bAddFriend];
-        addFriendActivityIndicator.hidden = YES;
-        return success;
-    };
-    
-    promise_errorHandler_t error = ^id(NSError * error) {
-        addFriendActivityIndicator.hidden = YES;
-        return error;
-    };
+//    promise_completionHandler_t success = ^id(id success) {
+//        addFriendImageView.highlighted = isFriend;
+//        addFriendTextView.text = isFriend ? [NSBundle t: bRemoveFriend] : [NSBundle t:bAddFriend];
+//        addFriendActivityIndicator.hidden = YES;
+//        return success;
+//    };
+//    
+//    promise_errorHandler_t error = ^id(NSError * error) {
+//        addFriendActivityIndicator.hidden = YES;
+//        return error;
+//    };
 }
 
 -(BOOL) isFriend {
@@ -179,17 +179,17 @@
     [blockUserActivityIndicator startAnimating];
     
     // Handle the result:
-    promise_completionHandler_t success = ^id(id success) {
-        blockImageView.highlighted = isBlocked;
-        blockTextView.text = isBlocked ? [NSBundle t:bUnblock] : [NSBundle t:bBlock];
-        blockUserActivityIndicator.hidden = YES;
-        return success;
-    };
-    
-    promise_errorHandler_t error = ^id(NSError * error) {
-        blockUserActivityIndicator.hidden = YES;
-        return error;
-    };
+//    promise_completionHandler_t success = ^id(id success) {
+//        blockImageView.highlighted = isBlocked;
+//        blockTextView.text = isBlocked ? [NSBundle t:bUnblock] : [NSBundle t:bBlock];
+//        blockUserActivityIndicator.hidden = YES;
+//        return success;
+//    };
+//
+//    promise_errorHandler_t error = ^id(NSError * error) {
+//        blockUserActivityIndicator.hidden = YES;
+//        return error;
+//    };
 }
 
 -(BOOL) isBlocked {

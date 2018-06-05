@@ -33,6 +33,7 @@
 // Underscore keys
 #define b_Payload @"payload"
 #define b_JSON @"JSON"
+#define b_JSONV2 @"json_v2"
 #define b_Type @"type"
 #define b_TypeV4 @"type_v4"
 #define b_Date @"date"
@@ -43,28 +44,14 @@
 #define b_UserName @"userName"
 #define b_ReadPath @"read"
 
-#define b_FirebaseID @"firebase-id"
-#define b_ThreadFirebaseID @"thread-firebase-id"
-#define b_RoundEnds @"round-ends"
-#define b_Key @"key"
-#define b_Value @"value"
-#define b_TextColor @"text-color"
 #define b_Meta @"meta"
-//#define b_ReadReceipts @"read-receipts"
-//#define b_FontName @"font-name"
-//#define b_FontSize @"font-size"
 #define b_Name @"name"
 #define b_CreationDate @"creation-date"
-#define b_NekStatus @"nek-status"
-#define b_Picture @"picture"
-#define b_PictureIsSilhouette @"picture-is-silhouette"
-#define b_LastUpdated @"last-updated"
-#define b_Thumbnail @"thumbnail"
 #define b_Online @"online"
 #define b_Message @"message"
+#define b_Thread @"thread"
 #define b_Status @"status"
 #define b_InvitedBy @"invitedBy"
-#define b_Status @"status"
 
 #define bStatusMember @"member"
 #define bStatusOwner @"owner"
@@ -81,8 +68,8 @@
 #define bOnlinePath @"online"
 #define bIndexPath @"index"
 #define bSearchIndexPath @"searchIndex"
-//#define bThumbnailPath @"thumbnail"
-//#define bImagePath @"image"
+#define bLastOnlinePath @"last-online"
+
 #define bAudioPath @"audio"
 #define bVideoPath @"video"
 #define bUpdatedPath @"updated"
@@ -92,16 +79,9 @@
 
 #define bLoginTypeKey @"login-type"
 #define bLoginEmailKey @"login-email"
+#define bLoginUsernameKey @"login-email"
 #define bLoginPasswordKey @"login-password"
 #define bLoginCustomToken @"custom-token"
-
-// TODO Twitter keys - Refactor this
-// Twitter login keys
-#define bTwitterLoginStartNotification @"bTwitterLoginStartNotification"
-#define bTwitterLoginPromiseNotification @"bTwitterLoginPromiseNotification"
-#define bTwitterLoginPromise @"bTwitterLoginPromise"
-#define bTwitterAuthToken @"bTwitterAuthToken"
-#define bTwitterSecret @"bTwitterSecret"
 
 #define bUserStateKey @"bUserStateKey"
 #define bUserStatusTextKey @"bUserStatusTextKey"
@@ -114,6 +94,5 @@
 #define bUserPictureURLThumbnailKey @"pictureURLThumbnail"
 #define bUserPrivilegeKey @"privilege"
 #define bUID @"uid"
-
 
 #endif /* BKeys_h */
