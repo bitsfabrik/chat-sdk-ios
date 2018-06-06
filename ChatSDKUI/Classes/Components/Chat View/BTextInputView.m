@@ -40,7 +40,9 @@
         maxLines = bMaxLines;
         
         // Set the text color
-        _placeholderColor = [[[BInterfaceManager sharedManager] a] placeholderColor];
+        if (_placeholderColor == nil) {
+            _placeholderColor = [UIColor darkGrayColor];
+        }
         _textColor = [UIColor blackColor];
 
         // Create an options button which shows an action sheet

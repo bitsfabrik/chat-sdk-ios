@@ -47,7 +47,7 @@
         case bMessageTypeSticker:
             return 140;
         default:
-            return [self getTextHeightWithFont:[[[BInterfaceManager sharedManager] a] messageTextFont] withWidth:[self messageWidth]];
+        return [self getTextHeightWithFont:[BChatSDK config].messageTextFont withWidth:[self messageWidth]];
     }
 }
 
@@ -71,7 +71,7 @@
 
 -(float) textWidth: (NSString *) text {
     if (text) {
-        UIFont * font = [[[BInterfaceManager sharedManager] a] messageTextFont];
+        UIFont * font = [BChatSDK config].messageTextFont;
         if (font) {
             return [text boundingRectWithSize:CGSizeMake(bMaxMessageWidth, CGFLOAT_MAX)
                                       options:NSStringDrawingUsesLineFragmentOrigin
@@ -162,7 +162,7 @@
 }
 
 -(float) getTextHeightWithWidth: (float) width {
-    return [self getTextHeightWithFont:[[[BInterfaceManager sharedManager] a] messageTextFont] withWidth:width];
+    return [self getTextHeightWithFont:[BChatSDK config].messageTextFont withWidth:width];
 }
 
 -(float) getTextHeightWithFont: (UIFont *) font withWidth: (float) width {

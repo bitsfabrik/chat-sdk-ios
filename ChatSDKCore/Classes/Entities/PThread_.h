@@ -101,8 +101,5 @@ typedef enum {
 -(NSDate *) orderDate;
 -(void) clearMessageCache;
 
--(void) setMetaDictionary: (NSDictionary *) dict;
--(NSDictionary *) metaDictionary;
-
 @end
 

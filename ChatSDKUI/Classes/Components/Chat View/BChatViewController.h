@@ -18,8 +18,6 @@
     
     NSMutableArray * _messageCache;
     BOOL _messageCacheDirty;
-
-    BNotificationObserverList * _notificationList;
 }
 
 @property (nonatomic, readonly) id<PThread> thread;

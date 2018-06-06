@@ -28,7 +28,6 @@
 @synthesize tableView;
 @synthesize delegate;
 @synthesize subtitleLabel = _subtitleLabel;
-@synthesize customBottomInset;
 @synthesize sendBarView = _sendBarView;
 @synthesize titleLabel = _titleLabel;
 
@@ -348,6 +347,7 @@
     else {
         messageCell = [tableView_ dequeueReusableCellWithIdentifier:message.type.stringValue];
     }
+    messageCell.delegate = self;
 
     messageCell.navigationController = self.navigationController;
 

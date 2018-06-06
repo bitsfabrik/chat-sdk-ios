@@ -23,7 +23,7 @@
 @class BMessageSection;
 @class BNotificationObserverList;
 
-@interface ElmChatViewController : UIViewController<UITableViewDataSource, UITableViewDelegate, PSendBarDelegate, UINavigationControllerDelegate, UIScrollViewDelegate, BChatOptionDelegate> {
+@interface ElmChatViewController : UIViewController<UITableViewDataSource, UITableViewDelegate, PSendBarDelegate, UINavigationControllerDelegate, UIScrollViewDelegate, BChatOptionDelegate, BMessageCellDelegate> {
     
     NSArray<BMessageSection *> * _messages;
     
@@ -56,7 +56,6 @@
 }
 
 @property (weak, nonatomic) IBOutlet UITableView * tableView;
-@property (nonatomic, strong) UILabel *titleLabel;
 @property (nonatomic, strong) UILabel *subtitleLabel;
 @property (nonatomic, readwrite, weak) id<ElmChatViewDelegate> delegate;
 @property (nonatomic, readonly) UIView<PSendBar> * sendBarView;

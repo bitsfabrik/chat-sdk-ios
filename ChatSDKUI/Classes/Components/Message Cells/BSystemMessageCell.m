@@ -28,7 +28,7 @@
         textView.editable = NO;
         textView.userInteractionEnabled = YES;
         textView.scrollEnabled = YES;
-        textView.font = [[[BInterfaceManager sharedManager] a] messageSystemTextFont];
+        textView.font = [UIFont systemFontOfSize:14];
         textView.textColor = [UIColor grayColor];
         textView.textAlignment = NSTextAlignmentCenter;
 
