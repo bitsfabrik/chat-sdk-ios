@@ -19,7 +19,8 @@
 
 @interface BCoreUtilities : NSObject
 
-+(RXPromise *) fetchImageFromURL: (NSString *) url;
++(NSURL *)getDocumentsURL;
++(RXPromise *)fetchImageFromURL:(NSURL *)url;
 +(NSString *)getUUID;
 
 +(MKCoordinateRegion) regionForLongitude: (double) longitude latitude: (double) latitude;
@@ -33,6 +34,5 @@
 +(UIColor *) stringToColor: (NSString *) color;
 
 +(RXPromise *) getWithPath: (NSString *) path parameters: (NSDictionary *) params;
-
 
 @end

@@ -8,7 +8,7 @@
 
 #import "BAbstractNetworkAdapter.h"
 
-#import <ChatSDK/ChatCore.h>
+#import <ChatSDK/Core.h>
 
 @implementation BAbstractNetworkAdapter {
     NSMutableDictionary * _handlers;
@@ -20,7 +20,7 @@
         self.imageMessage = [[BBaseImageMessageHandler alloc] init];
         self.locationMessage = [[BBaseLocationMessageHandler alloc] init];
         self.hook = [[BBaseHookHandler alloc] init];
-        
+        self.connectivity = [[BBaseInternetConnectivityHandler alloc] init];
         _handlers = [NSMutableDictionary new];
     }
     return self;

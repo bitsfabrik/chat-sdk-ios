@@ -8,8 +8,8 @@
 
 #import "BDefaultInterfaceAdapter.h"
 
-#import <ChatSDK/ChatCore.h>
-#import <ChatSDK/ChatUI.h>
+#import <ChatSDK/Core.h>
+#import <ChatSDK/UI.h>
 #import <ChatSDK/BChatViewController.h>
 #import <ChatSDK/BChatOptionDelegate.h>
 
@@ -23,7 +23,7 @@
         _additionalChatOptions = [NSMutableArray new];
         _additionalTabBarViewControllers = [NSMutableArray new];
         _additionalSearchViewControllers = [NSMutableDictionary new];
-        
+        _customMessageCellTypes = [NSMutableArray new];
         // MEM1
         //[[SDWebImageDownloader sharedDownloader] setShouldDecompressImages:NO];
     }
@@ -38,7 +38,7 @@
     int i = 0;
     BOOL found = false;
     for(NSArray * array in _additionalTabBarViewControllers) {
-        if([array[1] intValue] == index) {
+        if(array.count > 1 && [array.lastObject intValue] == index) {
             found = true;
             break;
         }
@@ -68,8 +68,12 @@
     return [[BContactsViewController alloc] init];
 }
 
--(BFriendsListViewController *) friendsViewControllerWithUsersToExclude: (NSArray *) usersToExclude {
-    return [[BFriendsListViewController alloc] initWithUsersToExclude:usersToExclude];
+-(BFriendsListViewController *) friendsViewControllerWithUsersToExclude: (NSArray *) usersToExclude onComplete: (void(^)(NSArray * users, NSString * name)) action{
+    return [[BFriendsListViewController alloc] initWithUsersToExclude:usersToExclude onComplete:action];
+}
+
+-(UINavigationController *) friendsNavigationControllerWithUsersToExclude: (NSArray *) usersToExclude onComplete: (void(^)(NSArray * users, NSString * name)) action {
+    return [self navigationControllerWithRootViewController:[self friendsViewControllerWithUsersToExclude:usersToExclude onComplete:action]];
 }
 
 -(UIViewController *) appTabBarViewController {
@@ -79,7 +83,7 @@
 -(UIViewController *) profileViewControllerWithUser: (id<PElmUser>) user {
     
     UIStoryboard * storyboard = [UIStoryboard storyboardWithName:@"Profile"
-                                                          bundle:[NSBundle chatUIBundle]];
+                                                          bundle:[NSBundle uiBundle]];
     
     BProfileTableViewController * controller = [storyboard instantiateInitialViewController];
     // TODO: Fix this
@@ -89,6 +93,10 @@
 
 -(UIViewController *) eulaViewController {
     return [[BEULAViewController alloc] init];
+}
+
+-(UINavigationController *) eulaNavigationController {
+    return [self navigationControllerWithRootViewController:self.eulaViewController];
 }
 
 -(BChatViewController *) chatViewControllerWithThread: (id<PThread>) thread {
@@ -105,7 +113,7 @@
                                                              self.contactsViewController,
                                                              [self profileViewControllerWithUser: Nil]]];
     
-    if([BChatSDK config].enableMessageModerationTab) {
+    if(BChatSDK.config.enableMessageModerationTab) {
         [dict addObject: self.flaggedMessagesViewController];
     }
     
@@ -125,7 +133,9 @@
 -(NSArray *) tabBarNavigationViewControllers {
     NSMutableArray * controllers = [NSMutableArray new];
     for (id vc in self.tabBarViewControllers) {
-        [controllers addObject:[[UINavigationController alloc] initWithRootViewController:vc]];
+        UINavigationController * controller = [self navigationControllerWithRootViewController:vc];
+        controller.navigationBar.prefersLargeTitles = BChatSDK.config.prefersLargeTitles;
+        [controllers addObject:controller];
     }
     return controllers;
 }
@@ -134,9 +144,9 @@
    
     NSMutableArray * options = [NSMutableArray new];
     
-    BOOL videoEnabled = NM.videoMessage != Nil;
-    BOOL imageEnabled = NM.imageMessage != Nil && [BChatSDK config].imageMessagesEnabled;
-    BOOL locationEnabled = NM.locationMessage != Nil && [BChatSDK config].locationMessagesEnabled;
+    BOOL videoEnabled = BChatSDK.videoMessage != Nil;
+    BOOL imageEnabled = BChatSDK.imageMessage != Nil && BChatSDK.config.imageMessagesEnabled;
+    BOOL locationEnabled = BChatSDK.locationMessage != Nil && BChatSDK.config.locationMessagesEnabled;
     
     if (imageEnabled && videoEnabled) {
         [options addObject:[[BMediaChatOption alloc] initWithType:bPictureTypeCameraVideo]];
@@ -177,8 +187,25 @@
             [vc setExcludedUsers:users];
         }
     }
-    return [[UINavigationController alloc] initWithRootViewController:vc];
+//    return vc;
+    return [self navigationControllerWithRootViewController:vc];
     
+}
+
+-(UIViewController<PImageViewController> *) imageViewController {
+    return [[BImageViewController alloc] initWithNibName:nil bundle:Nil];
+}
+
+-(UINavigationController *) imageViewNavigationController {
+    return [self navigationControllerWithRootViewController:[self imageViewController]];
+}
+
+-(UIViewController<PLocationViewController> *) locationViewController {
+    return [[BLocationViewController alloc] initWithNibName:nil bundle:Nil];
+}
+
+-(UINavigationController *) locationViewNavigationController {
+    return [self navigationControllerWithRootViewController:self.locationViewController];
 }
 
 -(NSDictionary *) additionalSearchControllerNames {
@@ -202,6 +229,7 @@
 -(UIViewController<PSearchViewController> *) searchViewControllerExcludingUsers: (NSArray *) users usersAdded: (void(^)(NSArray * users)) usersAdded {
     BSearchViewController * vc = [[BSearchViewController alloc] initWithUsersToExclude: users];
     [vc setSelectedAction:usersAdded];
+    [vc setExcludedUsers:users];
     return vc;
 }
 
@@ -222,6 +250,16 @@
     vc.parentNavigationController = parent;
     return vc;
 }
+
+-(UINavigationController *) usersViewNavigationControllerWithThread: (id<PThread>) thread parentNavigationController: (UINavigationController *) parent {
+    return [self navigationControllerWithRootViewController:[self usersViewControllerWithThread:thread parentNavigationController:parent]];
+}
+
+-(UINavigationController *) navigationControllerWithRootViewController: (UIViewController *) viewController {
+    UINavigationController * nav = [[UINavigationController alloc] initWithRootViewController:viewController];
+    return nav;
+}
+
 
 -(void) addChatOption: (BChatOption *) option {
     if(![_additionalChatOptions containsObject:option]) {
@@ -248,12 +286,27 @@
 }
 
 -(BOOL) showLocalNotification: (id) notification {
-    return _showLocalNotifications && [BChatSDK config].showLocalNotifications;
+    return _showLocalNotifications && BChatSDK.config.showLocalNotifications;
 }
 
 -(void) setShowLocalNotifications: (BOOL) show {
     _showLocalNotifications = show;
 }
 
+-(UIViewController *) searchIndexViewControllerWithIndexes: (NSArray *) indexes withCallback: (void(^)(NSArray *)) callback {
+    return [[BSearchIndexViewController alloc] initWithIndexes:indexes withCallback:callback];
+}
+
+-(UINavigationController *) searchIndexNavigationControllerWithIndexes: (NSArray *) indexes withCallback: (void(^)(NSArray *)) callback {
+    return [self navigationControllerWithRootViewController:[self searchIndexViewControllerWithIndexes:indexes withCallback:callback]];
+}
+
+-(void) registerCustomMessageWithCellClass: (Class) cellClass messageType: (NSNumber *) type {
+    [_customMessageCellTypes addObject:@[cellClass, type]];
+}
+
+-(NSArray *) customMessageCellTypes {
+    return _customMessageCellTypes;
+}
 
 @end

@@ -8,8 +8,8 @@
 
 #import "BTextMessageCell.h"
 
-#import <ChatSDK/ChatUI.h>
-#import <ChatSDK/ChatCore.h>
+#import <ChatSDK/UI.h>
+#import <ChatSDK/Core.h>
 #import <ChatSDK/PElmMessage.h>
 
 @implementation BTextMessageCell
@@ -28,18 +28,21 @@
         textView.editable = NO;
         textView.userInteractionEnabled = YES;
         textView.scrollEnabled = YES;
+        // Get rid of padding and margin
+        textView.textContainer.lineFragmentPadding = 0;
+        textView.textContainerInset = UIEdgeInsetsZero;
 
         textView.font = [UIFont systemFontOfSize:bDefaultFontSize];
-        if([BChatSDK config].messageTextFont) {
-            textView.font = [BChatSDK config].messageTextFont;
+        if(BChatSDK.config.messageTextFont) {
+            textView.font = BChatSDK.config.messageTextFont;
         }
         
-        UIColor * linkColor = [[BInterfaceManager sharedManager].a colorForName:bColorMessageLink];
+        UIColor * linkColor = [BChatSDK.ui colorForName:bColorMessageLink];
         if(linkColor) {
             textView.linkTextAttributes = @{NSForegroundColorAttributeName: linkColor};
         }
         
-        textView.contentInset = UIEdgeInsetsMake(-8.0, -5.0, 0.0, 0.0);
+//        textView.contentInset = UIEdgeInsetsMake(-9.0, -5.0, 0.0, 0.0);
         
         [self.bubbleImageView addSubview:textView];
         
@@ -47,16 +50,16 @@
     return self;
 }
 
--(void) setMessage: (id<PElmMessage, PMessageLayout>) message withColorWeight:(float)colorWeight {
+-(void) setMessage: (id<PElmMessage>) message withColorWeight:(float)colorWeight {
     [super setMessage:message withColorWeight:colorWeight];
     
     textView.text = message.textString;
     
-    if([BChatSDK config].messageTextColorMe && message.userModel.isMe) {
-        textView.textColor = [BCoreUtilities colorWithHexString:[BChatSDK config].messageTextColorMe];
+    if(BChatSDK.config.messageTextColorMe && message.userModel.isMe) {
+        textView.textColor = [BCoreUtilities colorWithHexString:BChatSDK.config.messageTextColorMe];
     }
-    else if([BChatSDK config].messageTextColorReply && !message.userModel.isMe) {
-        textView.textColor = [BCoreUtilities colorWithHexString:[BChatSDK config].messageTextColorReply];
+    else if(BChatSDK.config.messageTextColorReply && !message.userModel.isMe) {
+        textView.textColor = [BCoreUtilities colorWithHexString:BChatSDK.config.messageTextColorReply];
     }
     else
     {

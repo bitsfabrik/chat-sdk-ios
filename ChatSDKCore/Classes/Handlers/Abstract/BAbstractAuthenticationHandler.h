@@ -7,10 +7,11 @@
 //
 
 #import <Foundation/Foundation.h>
-#import <ChatSDK/ChatCore.h>
+#import <ChatSDK/Core.h>
 #import <ChatSDK/PAuthenticationHandler.h>
 
 @interface BAbstractAuthenticationHandler : NSObject<PAuthenticationHandler> {
+    BOOL _authenticatedThisSession;
 }
 
 @property (nonatomic, readwrite) UIViewController * challengeViewController;

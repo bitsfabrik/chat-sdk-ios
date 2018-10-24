@@ -29,8 +29,11 @@
 @property (nonatomic, readwrite) id<PNearbyUsersHandler> nearbyUsers;
 @property (nonatomic, readwrite) id<PReadReceiptHandler> readReceipt;
 @property (nonatomic, readwrite) id<PStickerMessageHandler> stickerMessage;
+@property (nonatomic, readwrite) id<PFileMessageHandler> fileMessage;
 @property (nonatomic, readwrite) id<PSocialLoginHandler> socialLogin;
 @property (nonatomic, readwrite) id<PUsersHandler> users;
 @property (nonatomic, readwrite) id<PHookHandler> hook;
+@property (nonatomic, readwrite) id<PEncryptionHandler> encryption;
+@property (nonatomic, readwrite) id<PInternetConnectivityHandler> connectivity;
 
 @end

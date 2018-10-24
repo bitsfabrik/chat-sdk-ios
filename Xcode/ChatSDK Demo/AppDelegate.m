@@ -8,8 +8,7 @@
 
 #import "AppDelegate.h"
 
-#import <ChatSDK/ChatCore.h>
-#import <ChatSDK/ChatUI.h>
+#import <ChatSDK/UI.h>
 
 @interface AppDelegate ()
 
@@ -17,26 +16,33 @@
 
 @implementation AppDelegate
 
-
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
 
     // Create a network adapter to communicate with Firebase
     // The network adapter handles network traffic
 
     BConfiguration * config = [BConfiguration configuration];
-    config.rootPath = @"18_05_test";
+    config.rootPath = @"18_10";
     config.allowUsersToCreatePublicChats = NO;
-    config.showEmptyChats = YES;
+    config.showEmptyChats = NO;
     config.googleMapsApiKey = @"AIzaSyCwwtZrlY9Rl8paM0R6iDNBEit_iexQ1aE";
-    config.firebaseCloudMessagingServerKey = @"AAAA_WvJyeI:APA91bFIDYoxnbFTub61SKCh8-RZrElzdkZpzyV3paGFlRWonMzq33zQmQW3ub5hDXLuRaipwtoHSoDKXkZlN5DRb_EYdrxtaDptmvZKCYBPKI-4RqTK9wVLOJvgc5X3bVWLfpNSJO_tLK2pnmhfpHDw2Zs-5L2yug";
     config.clearDataWhenRootPathChanges = YES;
+    config.loginUsernamePlaceholder = @"Email";
+    
+    // Twitter Setup
+    config.twitterApiKey = @"Kqprq5b6bVeEfcMAGoHzUmB3I";
+    config.twitterSecret = @"hPd9HCt3PLnifQFrGHJWi6pSZ5jF7kcHKXuoqB8GJpSDAlVcLq";
+    
+    // Facebook Setup
+    config.facebookAppId = @"648056098576150";
+    
+    // Google Setup
+    config.googleClientKey = @"1088435112418-4cm46hg39okkf0skj2h5roj1q62anmec.apps.googleusercontent.com";
     
     [BChatSDK initialize:config app:application options:launchOptions];
 
-    
-
     UIViewController * rootViewController = [BInterfaceManager sharedManager].a.appTabBarViewController;
-
+    
     // Set the root view controller
     [self.window setRootViewController:rootViewController];
 

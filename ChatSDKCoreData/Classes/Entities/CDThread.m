@@ -8,8 +8,8 @@
 
 #import "CDThread.h"
 
-#import <ChatSDK/ChatCore.h>
-#import <ChatSDK/ChatCoreData.h>
+#import <ChatSDK/Core.h>
+#import <ChatSDK/CoreData.h>
 
 @implementation CDThread
 
@@ -33,21 +33,8 @@
 
 -(void) resetMessages {
     [_messagesWorkingList removeAllObjects];
-    [_messagesWorkingList addObjectsFromArray:[self loadMessagesWithCount:[BChatSDK config].chatMessagesToLoad ascending:NO]];
+    [_messagesWorkingList addObjectsFromArray:[self loadMessagesWithCount:BChatSDK.config.chatMessagesToLoad ascending:NO]];
     [self reverse:_messagesWorkingList];
-    
-    //
-    
-//    NSArray * messages = [self orderMessagesByDateDesc:self.allMessages];
-//
-//    for(int i = 0; i < bMessageWorkingListInitialSize; i++) {
-//        if(i < messages.count) {
-//            [_messagesWorkingList addObject:messages[i]];
-//        }
-//        else {
-//            break;
-//        }
-//    }
 }
 
 - (void)reverse: (NSMutableArray *) array {
@@ -64,7 +51,6 @@
     }
 }
 
-// This will re
 -(NSArray *) loadMessagesWithCount: (NSInteger) count ascending: (BOOL) ascending {
     NSFetchRequest * request = [[NSFetchRequest alloc] init];
     request.includesPendingChanges = YES;
@@ -72,7 +58,7 @@
     request.sortDescriptors = @[[NSSortDescriptor sortDescriptorWithKey:@"date" ascending:ascending]];
     NSPredicate * predicate = [NSPredicate predicateWithFormat:@"thread = %@", self];
     
-    NSArray * messages = [[BStorageManager sharedManager].a executeFetchRequest:request
+    NSArray * messages = [BChatSDK.db executeFetchRequest:request
                                                                      entityName:bMessageEntity
                                                                       predicate:predicate];
     
@@ -82,7 +68,7 @@
 -(NSArray *) loadMoreMessages: (NSInteger) numberOfMessages {
     
     NSInteger count = _messagesWorkingList.count + numberOfMessages;
-    count = MAX(count, [BChatSDK config].chatMessagesToLoad);
+    count = MAX(count, BChatSDK.config.chatMessagesToLoad);
     
     // Get the next batch of messages
     [_messagesWorkingList removeAllObjects];
@@ -98,7 +84,7 @@
 }
 
 -(void) optimize {
-    NSArray * messages = [self loadMessagesWithCount:[BChatSDK config].chatMessagesToLoad ascending:YES];
+    NSArray * messages = [self loadMessagesWithCount:BChatSDK.config.chatMessagesToLoad ascending:YES];
     for(int i = 0; i < messages.count; i++) {
         CDMessage * message = (CDMessage *) messages[i];
         [message clearOptimizationProperties];
@@ -130,7 +116,7 @@
     CDMessage * cdMessage = (CDMessage *) message;
     cdMessage.thread = Nil;
     
-    [[BStorageManager sharedManager].a deleteEntity:cdMessage];
+    [BChatSDK.db deleteEntity:cdMessage];
     if([self.messagesWorkingList containsObject:message]) {
         [self.messagesWorkingList removeObject:message];
     }
@@ -196,7 +182,7 @@
     NSString * name = @"";
     
     for (id<PUser> user in self.users) {
-        if (![user isEqual:NM.currentUser]) {
+        if (![user isEqual:BChatSDK.currentUser]) {
             if (user.name.length) {
                 name = [name stringByAppendingFormat:@"%@, ", user.name];
             }
@@ -251,7 +237,7 @@
 }
 
 -(id<PUser>) otherUser {
-    id<PUser> currentUser = NM.currentUser;
+    id<PUser> currentUser = BChatSDK.currentUser;
     if (self.type.intValue == bThreadType1to1 || self.users.count == 2) {
         for (id<PUser> user in self.users) {
             if (![user isEqual:currentUser]) {
@@ -262,13 +248,24 @@
     return Nil;
 }
 
+-(void) updateMeta: (NSDictionary *) dict {
+    if (!self.meta) {
+        self.meta = @{};
+    }
+    self.meta = [self.meta updateMetaDict:dict];
+}
+
+-(void) setMetaValue: (id) value forKey: (NSString *) key {
+    [self updateMeta:@{key: value ? value : @""}];
+}
+
 // TODO: Move this to UI module
 - (UIImage *)imageForThread {
     
     NSMutableArray * users = [NSMutableArray arrayWithArray:self.users.allObjects];
     
     // Remove the current user from the array
-    [users removeObject:NM.currentUser];
+    [users removeObject:BChatSDK.currentUser];
     
     // Create a temporary array as we cannot loop through an array and remove users
     NSMutableArray * tempUsers = [NSMutableArray arrayWithArray:users];
@@ -287,10 +284,10 @@
         
         // Check how many users are in the conversation
         if (self.type.intValue & bThreadFilterPublic) {
-            return [NSBundle imageNamed:bDefaultPublicGroupImage framework:@"ChatSDK" bundle:@"ChatUI"];
+            return BChatSDK.config.defaultGroupChatAvatar;
         }
         else {
-            return [BChatSDK config].defaultBlankAvatar;
+            return BChatSDK.config.defaultBlankAvatar;
         }
     }
     else if (users.count == 1) {

@@ -6,7 +6,7 @@
 //
 
 #import "BConfiguration.h"
-#import <ChatSDK/ChatCore.h>
+#import <ChatSDK/Core.h>
 #import <ChatSDK/BSettingsManager.h>
 
 @implementation BConfiguration
@@ -46,7 +46,6 @@
 @synthesize enableMessageModerationTab;
 @synthesize showLocalNotifications;
 @synthesize onlySendPushToOfflineUsers;
-@synthesize firebaseCloudMessagingServerKey;
 @synthesize twitterApiKey;
 @synthesize twitterSecret;
 @synthesize googleClientKey;
@@ -55,14 +54,27 @@
 @synthesize forgotPasswordEnabled;
 @synthesize termsAndConditionsEnabled;
 @synthesize clientPushEnabled;
+@synthesize defaultGroupChatAvatar;
+@synthesize prefersLargeTitles;
+@synthesize shouldOpenChatWhenPushNotificationClickedOnlyIfTabBarVisible;
 
 @synthesize inviteByEmailTitle;
 @synthesize inviteByEmailBody;
 @synthesize inviteBySMSBody;
 @synthesize audioMessageMaxLengthSeconds;
 
+@synthesize xmppPort;
+@synthesize xmppDomain;
+@synthesize xmppResource;
+@synthesize xmppHostAddress;
+@synthesize xmppMucMessageHistory;
+
 -(instancetype) init {
     if((self = [super init])) {
+        
+        _messageBubbleMargin = [NSMutableDictionary new];
+        _messageBubblePadding = [NSMutableDictionary new];
+        
         messageColorMe = bDefaultMessageColorMe;
         messageColorReply = bDefaultMessageColorReply;
         rootPath = @"default";
@@ -76,7 +88,7 @@
         facebookLoginEnabled = YES;
         twitterLoginEnabled = YES;
         googleLoginEnabled = YES;
-        clientPushEnabled = YES;
+        clientPushEnabled = NO;
         
         timeFormat = @"HH:mm";
         
@@ -103,6 +115,8 @@
         imageMessagesEnabled = YES;
         termsAndConditionsEnabled = YES;
         
+        prefersLargeTitles = YES;
+        
         forgotPasswordEnabled = YES;
         
         databaseVersion = @"1";
@@ -111,9 +125,9 @@
         
         showLocalNotifications = YES;
         
-        defaultBlankAvatar = [NSBundle imageNamed:bDefaultProfileImage framework:@"ChatSDK" bundle:@"ChatCore"];
+        defaultBlankAvatar = [NSBundle imageNamed:bDefaultProfileImage bundle:bCoreBundleName];
+        defaultGroupChatAvatar = [NSBundle imageNamed:bDefaultPublicGroupImage bundle:bCoreBundleName];
         
-        firebaseCloudMessagingServerKey = [BSettingsManager firebaseCloudMessagingServerKey];
         rootPath = [BSettingsManager firebaseRootPath];
         
         twitterApiKey = [BSettingsManager twitterApiKey];
@@ -125,11 +139,19 @@
         
         anonymousLoginEnabled = [BSettingsManager anonymousLoginEnabled];
         
-        userChatInfoEnabled = [BSettingsManager userChatInfoEnabled];
+        userChatInfoEnabled = YES;
         
         inviteByEmailTitle = [BSettingsManager property: bEmailTitle forModule: @"contact_book"];
         inviteByEmailBody = [BSettingsManager property: bEmailBody forModule: @"contact_book"];
-        inviteBySMSBody = [BSettingsManager property: bSMSBody forModule: @"contact_book"];;
+        inviteBySMSBody = [BSettingsManager property: bSMSBody forModule: @"contact_book"];
+        
+        shouldOpenChatWhenPushNotificationClickedOnlyIfTabBarVisible = NO;
+        
+        // Try to pre-configure XMPP from plist for backwards compatibility
+        [self configureXMPPFromPlist];
+        
+        xmppMucMessageHistory = 20;
+        
     }
     return self;
 }
@@ -148,8 +170,52 @@
     includeMessageJSONV2 = api3;
 }
 
+-(void) xmppWithHostAddress: (NSString *) hostAddress {
+    [self xmppWithDomain:Nil hostAddress:hostAddress];
+}
+
+-(void) xmppWithDomain: (NSString *) domain hostAddress: (NSString *) hostAddress {
+    [self xmppWithDomain:domain hostAddress:hostAddress port:0];
+}
+
+-(void) xmppWithDomain: (NSString *) domain hostAddress: (NSString *) hostAddress port: (int) port {
+    [self xmppWithDomain:domain hostAddress:hostAddress port:port resource:Nil];
+}
+
+-(void) xmppWithDomain: (NSString *) domain hostAddress: (NSString *) hostAddress port: (int) port resource: (NSString *) resource {
+    xmppDomain = domain;
+    xmppHostAddress = hostAddress;
+    xmppPort = port;
+    xmppResource = resource;
+}
+
+-(void) configureXMPPFromPlist {
+    xmppHostAddress = [BSettingsManager string_s:@[bXMPPKey, bXMPPHostAddressKey]];
+    NSNumber * port = [BSettingsManager number_s:@[bXMPPKey, bXMPPPortKey]];
+    xmppPort = port.intValue;
+    xmppDomain = [BSettingsManager string_s:@[bXMPPKey, bXMPPDomainKey]];
+    xmppResource = [BSettingsManager string_s:@[bXMPPKey, bXMPPResourceKey]];
+}
+
 +(BConfiguration *) configuration {
     return [[self alloc] init];
 }
+
+-(void) setMessageBubbleMargin: (UIEdgeInsets) margin forMessageType: (bMessageType) type {
+    [_messageBubbleMargin setObject:[NSValue valueWithUIEdgeInsets:margin] forKey:@(type)];
+}
+
+-(void) setMessageBubblePadding: (UIEdgeInsets) padding forMessageType: (bMessageType) type {
+    [_messageBubblePadding setObject:[NSValue valueWithUIEdgeInsets: padding] forKey:@(type)];
+}
+
+-(NSValue *) messageBubbleMarginForType: (bMessageType) type {
+    return _messageBubbleMargin[@(type)];
+}
+
+-(NSValue *) messageBubblePaddingForType: (bMessageType) type {
+    return _messageBubblePadding[@(type)];
+}
+
 
 @end

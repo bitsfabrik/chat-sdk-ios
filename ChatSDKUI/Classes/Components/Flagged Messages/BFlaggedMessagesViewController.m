@@ -7,8 +7,8 @@
 
 #import "BFlaggedMessagesViewController.h"
 
-#import <ChatSDK/ChatCore.h>
-#import <ChatSDK/ChatUI.h>
+#import <ChatSDK/Core.h>
+#import <ChatSDK/UI.h>
 
 @interface BFlaggedMessagesViewController ()
 
@@ -25,7 +25,7 @@
     self = [super init];
     if (self) {
         self.title = [NSBundle t:bFlagged];
-        self.tabBarItem.image = [NSBundle chatUIImageNamed: @"icn_30_info.png"];
+        self.tabBarItem.image = [NSBundle uiImageNamed: @"icn_30_info.png"];
     }
     return self;
 }
@@ -84,7 +84,7 @@
 }
 
 - (void)updateFlaggedMessages {
-    self.flaggedMessages = [[NSArray alloc] initWithArray:[NM.moderation flaggedMessages]];
+    self.flaggedMessages = [[NSArray alloc] initWithArray:[BChatSDK.moderation flaggedMessages]];
 }
 
 - (NSInteger)indexForMessage:(id<PMessage>)message {
@@ -139,12 +139,12 @@
 -(NSArray *)tableView:(UITableView *)tableView editActionsForRowAtIndexPath:(NSIndexPath *)indexPath {
     
     UITableViewRowAction *delete = [UITableViewRowAction rowActionWithStyle:UITableViewRowActionStyleDefault title:@"Delete" handler:^(UITableViewRowAction *action, NSIndexPath *indexPath) {
-        [NM.moderation deleteMessage:self.flaggedMessages[indexPath.row].entityID];
+        [BChatSDK.moderation deleteMessage:self.flaggedMessages[indexPath.row].entityID];
     }];
     delete.backgroundColor = [UIColor redColor];
     
     UITableViewRowAction *more = [UITableViewRowAction rowActionWithStyle:UITableViewRowActionStyleDefault title:@"Unflag" handler:^(UITableViewRowAction *action, NSIndexPath *indexPath) {
-        [NM.moderation unflagMessage:self.flaggedMessages[indexPath.row].entityID];
+        [BChatSDK.moderation unflagMessage:self.flaggedMessages[indexPath.row].entityID];
     }];
     more.backgroundColor = [UIColor colorWithRed:0.188 green:0.514 blue:0.984 alpha:1];
     

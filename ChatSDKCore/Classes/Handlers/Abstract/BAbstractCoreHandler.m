@@ -8,26 +8,19 @@
 
 #import "BAbstractCoreHandler.h"
 
-#import <ChatSDK/ChatCore.h>
+#import <ChatSDK/Core.h>
 #import <Foundation/Foundation.h>
 
 @implementation BAbstractCoreHandler
 
 -(instancetype) init {
     if ((self = [super init])) {
-        // Start checking if we are connected to the internet
-        [[Reachability reachabilityForInternetConnection] startNotifier];
-        
-        [[NSNotificationCenter defaultCenter] addObserverForName:bNotificationLogout
-                                                          object:Nil
-                                                           queue:Nil
-                                                      usingBlock:^(NSNotification * sender) {
-                                                          // Resets the view which the tab bar loads on
-                                                          _currentUser = Nil;
-                                                      }];
-        
-
-
+        __weak __typeof__(self) weakSelf = self;
+        [BChatSDK.hook addHook:[BHook hook:^(NSDictionary * data) {
+            // Resets the view which the tab bar loads on
+            __typeof__(self) strongSelf = weakSelf;
+            strongSelf->_currentUser = Nil;
+        }] withName:bHookDidLogout];
     }
     return self;
 }
@@ -35,22 +28,22 @@
 -(RXPromise *) sendMessageWithText:(NSString *)text withThreadEntityID:(NSString *)threadID withMetaData: (NSDictionary *)meta {
     
     // Set the URLs for the images and save it in CoreData
-    [[BStorageManager sharedManager].a beginUndoGroup];
+    [BChatSDK.db beginUndoGroup];
     
-    id<PMessage> message = [[BStorageManager sharedManager].a createEntity:bMessageEntity];
+    id<PMessage> message = [BChatSDK.db createMessageEntity];
     
-    id<PThread> thread = [[BStorageManager sharedManager].a fetchEntityWithID:threadID withType:bThreadEntity];
+    id<PThread> thread = [BChatSDK.db fetchEntityWithID:threadID withType:bThreadEntity];
     
     message.type = @(bMessageTypeText);
-    [message setTextAsDictionary:@{bMessageTextKey: text}];
+    [message setTextString:text];
     
     message.date = [NSDate date];
     message.userModel = self.currentUserModel;
     message.delivered = @NO;
     message.read = @YES;
     message.flagged = @NO;
-    message.metaDictionary = meta;
-
+    message.meta = meta;
+    
     [thread addMessage: message];
     
     return [self sendMessage:message];
@@ -60,7 +53,6 @@
     return [self sendMessageWithText:text withThreadEntityID:threadID withMetaData:nil];
 }
 
-
 -(RXPromise *) sendMessage: (id<PMessage>) messageModel {
     // This is an abstract method which must be overridden
     NSLog(@"sendMessage: must be overridden");
@@ -69,7 +61,7 @@
 
 -(NSArray *) messagesForThreadWithEntityID:(NSString *) entityID order: (NSComparisonResult) order {
     // Get the thread
-    id<PThread> thread = [[BStorageManager sharedManager].a fetchEntityWithID:entityID withType:bThreadEntity];
+    id<PThread> thread = [BChatSDK.db fetchEntityWithID:entityID withType:bThreadEntity];
     
     if (thread) {
         if (order == NSOrderedAscending) {
@@ -83,14 +75,18 @@
 }
 
 -(NSArray *) threadsWithType:(bThreadType)type {
-    return [self threadsWithType:type includeDeleted:NO includeEmpty:[BChatSDK shared].configuration.showEmptyChats];
+    return [self threadsWithType:type includeDeleted:NO];
+}
+
+-(NSArray *) threadsWithType:(bThreadType)type includeDeleted: (BOOL) includeDeleted {
+    return [self threadsWithType:type includeDeleted:includeDeleted includeEmpty:BChatSDK.shared.configuration.showEmptyChats];
 }
 
 // TODO: Optimize this
 -(NSArray *) threadsWithType:(bThreadType)type includeDeleted: (BOOL) includeDeleted includeEmpty: (BOOL) includeEmpty {
     
     NSMutableArray * threads = [NSMutableArray new];
-    NSArray * allThreads = type & bThreadFilterPrivate ? NM.currentUser.threads : [[BStorageManager sharedManager].a fetchEntitiesWithName:bThreadEntity];
+    NSArray * allThreads = type & bThreadFilterPrivate ? BChatSDK.currentUser.threads : [BChatSDK.db fetchEntitiesWithName:bThreadEntity];
     
     for(id<PThread> thread in allThreads) {
         if(thread.type.intValue & bThreadFilterPrivate) {
@@ -113,11 +109,11 @@
 }
 
 -(void) save {
-    [[BStorageManager sharedManager].a save];
+    [BChatSDK.db save];
 }
 
 -(void) saveToStore {
-    [[BStorageManager sharedManager].a saveToStore];
+    [BChatSDK.db saveToStore];
 }
 
 -(void) sendLocalSystemMessageWithText:(NSString *)text withThreadEntityID:(NSString *)threadID {
@@ -127,21 +123,21 @@
 -(void) sendLocalSystemMessageWithText:(NSString *)text type: (bSystemMessageType) type withThreadEntityID:(NSString *)threadID {
     
     // Set the URLs for the images and save it in CoreData
-    id<PMessage> message = [[BStorageManager sharedManager].a createEntity:bMessageEntity];
+    id<PMessage> message = [BChatSDK.db createMessageEntity];
     message.entityID = [BCoreUtilities getUUID];
     
     message.type = @(bMessageTypeSystem);
     //message.text = text;
-    [message setTextAsDictionary:@{bMessageTypeKey: @(type),
-                                   bMessageTextKey: text}];
+    [message setTextString:text];
     
-    id<PThread> thread = [[BStorageManager sharedManager].a fetchEntityWithID:threadID withType:bThreadEntity];
+    id<PThread> thread = [BChatSDK.db fetchEntityWithID:threadID withType:bThreadEntity];
 
     message.date = [NSDate date];
     message.userModel = self.currentUserModel;
     message.delivered = @YES;
     message.read = @YES;
     message.flagged = @NO;
+    message.type = @(type);
 
     [thread addMessage: message];
 
@@ -155,7 +151,7 @@
 
 -(id<PUser>) userForEntityID: (NSString *) entityID {
     // Get the user and make sure it's updated
-    id<PUser> user = [[BStorageManager sharedManager].a fetchOrCreateEntityWithID:entityID
+    id<PUser> user = [BChatSDK.db fetchOrCreateEntityWithID:entityID
                                                                                withType:bUserEntity];
     return user;
 }
@@ -171,10 +167,11 @@
  * @brief Return the current user data
  */
 -(id<PUser>) currentUserModel {
-    NSString * currentUserID = NM.auth.currentUserEntityID;
-    if (!_currentUser) {
-        _currentUser = [[BStorageManager sharedManager].a fetchEntityWithID:currentUserID
+    NSString * currentUserID = BChatSDK.auth.currentUserEntityID;
+    if (!_currentUser || ![_currentUserEntityID isEqual:currentUserID]) {
+        _currentUser = [BChatSDK.db fetchEntityWithID:currentUserID
                                                                    withType:bUserEntity];
+        _currentUserEntityID = currentUserID;
         [_currentUser optimize];
         [self save];
     }
@@ -202,8 +199,8 @@
  * @brief Disconnect from the server
  */
 -(void) goOnline {
-    if(NM.lastOnline && [NM.lastOnline respondsToSelector:@selector(setLastOnlineForUser:)]) {
-        [NM.lastOnline setLastOnlineForUser:self.currentUserModel];
+    if(BChatSDK.lastOnline && [BChatSDK.lastOnline respondsToSelector:@selector(setLastOnlineForUser:)]) {
+        [BChatSDK.lastOnline setLastOnlineForUser:self.currentUserModel];
     }
 }
 
@@ -279,7 +276,6 @@
     
     NSMutableArray * usersToAdd = [NSMutableArray arrayWithArray:users];
     [usersToAdd removeObject:currentUser];
-    id<PUser> otherUser = usersToAdd.firstObject;
     [usersToAdd addObject:currentUser];
     
     // If there are only two users check to see if a thread already exists
@@ -292,7 +288,7 @@
         
         // Check to see if a thread already exists with these
         // two users
-        for (id<PThread> thread in [NM.core threadsWithType:bThreadType1to1 includeDeleted:YES includeEmpty:YES]) {
+        for (id<PThread> thread in [BChatSDK.core threadsWithType:bThreadType1to1 includeDeleted:YES includeEmpty:YES]) {
             if ([thread.users isEqual:usersToAddSet]) {
                 jointThread = thread;
                 break;
@@ -325,9 +321,9 @@
     
     // Before we create the thread start an undo grouping
     // that means that if it fails we can undo changed to the database
-    //[[BStorageManager sharedManager].a beginUndoGroup];
+    //[BChatSDK.db beginUndoGroup];
     
-    id<PThread> threadModel = [[BStorageManager sharedManager].a createEntity:bThreadEntity];
+    id<PThread> threadModel = [BChatSDK.db createThreadEntity];
     threadModel.creationDate = [NSDate date];
     threadModel.creator = currentUser;
     threadModel.type = usersToAdd.count == 2 ? @(bThreadType1to1) : @(bThreadTypePrivateGroup);
@@ -345,7 +341,7 @@
 
     NSSet * usersSet = [NSSet setWithArray:users];
 
-    for (id<PThread> thread in [NM.core threadsWithType:type]) {
+    for (id<PThread> thread in [BChatSDK.core threadsWithType:type]) {
         if([usersSet isEqual:thread.users]) {
             [threads addObject:thread];
         }

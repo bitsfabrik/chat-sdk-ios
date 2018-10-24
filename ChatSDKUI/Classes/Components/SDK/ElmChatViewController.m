@@ -8,11 +8,11 @@
 
 #import "ElmChatViewController.h"
 
-#import <MediaPlayer/MediaPlayer.h>
 #import <AVFoundation/AVFoundation.h>
+#import <AVKit/AVKit.h>
 
-#import <ChatSDK/ChatCore.h>
-#import <ChatSDK/ChatUI.h>
+#import <ChatSDK/Core.h>
+#import <ChatSDK/UI.h>
 
 
 // The distance to the bottom of the screen you need to be for the tableView to snap you to the bottom
@@ -34,7 +34,7 @@
 -(instancetype) initWithDelegate: (id<ElmChatViewDelegate>) delegate_
 {
     self.delegate = delegate_;
-    self = [super initWithNibName:@"BChatViewController" bundle:[NSBundle chatUIBundle]];
+    self = [super initWithNibName:@"BChatViewController" bundle:[NSBundle uiBundle]];
     if (self) {
         
         // Add a tap recognizer so when we tap the table we dismiss the keyboard
@@ -60,7 +60,8 @@
 // The text input view sits on top of the keyboard
 -(void) setupTextInputView {
 
-    _sendBarView = [[BInterfaceManager sharedManager].a sendBarView];
+    _sendBarView = [BChatSDK.ui sendBarView];
+    
     [_sendBarView setSendBarDelegate:self];
     
     [self.view addSubview:_sendBarView];
@@ -90,6 +91,10 @@
         for (NSArray * cell in delegate.customCellTypes) {
             [self.tableView registerClass:cell.firstObject forCellReuseIdentifier:[cell.lastObject stringValue]];
         }
+    }
+    
+    for(NSArray * cell in BChatSDK.ui.customMessageCellTypes) {
+        [self.tableView registerClass:cell.firstObject forCellReuseIdentifier:[cell.lastObject stringValue]];
     }
     
 }
@@ -134,7 +139,7 @@
     _keyboardOverlay = [[UIView alloc] initWithFrame:CGRectMake(0, self.view.fh, self.view.fw, 0)];
     _keyboardOverlay.backgroundColor = [UIColor whiteColor];
     
-    _optionsHandler = [[BInterfaceManager sharedManager].a chatOptionsHandlerWithDelegate:self];
+    _optionsHandler = [BChatSDK.ui chatOptionsHandlerWithDelegate:self];
     
     if(_optionsHandler.keyboardView) {
         [_keyboardOverlay addSubview:_optionsHandler.keyboardView];
@@ -170,10 +175,14 @@
     if (scroll) {
         [self scrollToBottomOfTable:YES];
     }
+        
 }
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    
+    // Large titles will interfere with the custom navigation bar
+    self.navigationItem.largeTitleDisplayMode = UINavigationItemLargeTitleDisplayModeNever;
     
     // Keep the table header at the top
     if ([self respondsToSelector:@selector(setEdgesForExtendedLayout:)]) {
@@ -285,6 +294,10 @@
     [super viewDidLayoutSubviews];
 }
 
+- (void) didRotateFromInterfaceOrientation:(UIInterfaceOrientation)fromInterfaceOrientation{
+    [self reloadData];
+}
+
 -(void) viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
     [self scrollToBottomOfTable:YES];
@@ -321,7 +334,7 @@
     return [_messages[section] rowCount];
 }
 
--(id<PElmMessage, PMessageLayout>) messageForIndexPath: (NSIndexPath *) path {
+-(id<PElmMessage>) messageForIndexPath: (NSIndexPath *) path {
     return [_messages[path.section] messageForRow:path.row];
 }
 
@@ -331,16 +344,18 @@
 
 - (UITableViewCell *)tableView:(UITableView *)tableView_ cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     
-    id<PElmMessage, PMessageLayout> message = [self messageForIndexPath:indexPath];
+    id<PElmMessage> message = [self messageForIndexPath:indexPath];
 
     
     BMessageCell<BMessageDelegate> * messageCell;
 
     // We want to check if the message is a premium type but without the libraries added
     // Without this check the app crashes if the user doesn't have premium cell types
-    if ((![BNetworkManager sharedManager].a.stickerMessage && message.type.integerValue == bMessageTypeSticker) ||
-        (![BNetworkManager sharedManager].a.videoMessage && message.type.integerValue == bMessageTypeVideo) ||
-        (![BNetworkManager sharedManager].a.audioMessage && message.type.integerValue == bMessageTypeAudio)) {
+    if ((!BChatSDK.stickerMessage && message.type.integerValue == bMessageTypeSticker) ||
+        (!BChatSDK.fileMessage && message.type.integerValue == bMessageTypeFile) ||
+        (!BChatSDK.videoMessage && message.type.integerValue == bMessageTypeVideo) ||
+        (!BChatSDK.fileMessage && message.type.integerValue == bMessageTypeFile) ||
+        (!BChatSDK.audioMessage && message.type.integerValue == bMessageTypeAudio)) {
         // This is a standard text cell
         messageCell = [tableView_ dequeueReusableCellWithIdentifier:@"0"];
     }
@@ -363,27 +378,31 @@
 -(void) addObservers {
     [self removeObservers];
     __weak __typeof__(self) weakSelf = self;
-    [_notificationList add:[[NSNotificationCenter defaultCenter] addObserverForName:kReachabilityChangedNotification object:Nil queue:Nil usingBlock:^(NSNotification * notification) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [weakSelf updateInterfaceForReachabilityStateChange];
-        });
-    }]];
+    
     [_notificationList add:[[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationWillEnterForegroundNotification object:Nil queue:Nil usingBlock:^(NSNotification * notification) {
+        __typeof__(self) strongSelf = weakSelf;
         dispatch_async(dispatch_get_main_queue(), ^{
-            [weakSelf addUserToPublicThreadIfNecessary];
+            [strongSelf addUserToPublicThreadIfNecessary];
         });
     }]];
+    
+    _internetConnectionHook = [BHook hook:^(NSDictionary * data) {
+        __typeof__(self) strongSelf = weakSelf;
+        [strongSelf updateInterfaceForReachabilityStateChange];
+    }];
+    [BChatSDK.hook addHook:_internetConnectionHook withName:bHookInternetConnectivityChanged];
     
     // Observe for keyboard appear and disappear notifications
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillShow:) name:UIKeyboardWillShowNotification object:Nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardDidShow:) name:UIKeyboardDidShowNotification object:Nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:Nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardDidHide:) name:UIKeyboardDidHideNotification object:Nil];
-    
 }
 
 -(void) removeObservers {
     [_notificationList dispose];
+    
+    [BChatSDK.hook removeHook:_internetConnectionHook withName:bHookInternetConnectivityChanged];
     
     [[NSNotificationCenter defaultCenter] removeObserver:self name:UIKeyboardWillShowNotification object:Nil];
     [[NSNotificationCenter defaultCenter] removeObserver:self name:UIKeyboardDidShowNotification object:Nil];
@@ -400,14 +419,16 @@
     if ([cell respondsToSelector:@selector(willDisplayCell)]) {
         [cell performSelector:@selector(willDisplayCell)];
     }
+    // Allow the table to support different background colors
+    cell.backgroundColor = [UIColor clearColor];
+    cell.contentView.backgroundColor = [UIColor clearColor];
 }
 
 // Set the message height based on the text height
 - (CGFloat)tableView:(UITableView *)tableView_ heightForRowAtIndexPath:(NSIndexPath *)indexPath {
     id<PElmMessage> message = [self messageForIndexPath:indexPath];
     if(message) {
-        id<PMessageLayout> l = [BMessageLayout layoutWithMessage:message];
-        return l.cellHeight;
+        return [BMessageCell cellHeight:message maxWidth:[BMessageCell maxTextWidth:message]];
     }
     else {
         return 0;
@@ -417,19 +438,55 @@
 - (void)tableView:(UITableView *)tableView_ didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     BMessageCell * cell = (BMessageCell *) [tableView_ cellForRowAtIndexPath:indexPath];
     
+    NSURL * url = Nil;
     if ([cell isKindOfClass:[BImageMessageCell class]]) {
         
-        if (!_imageViewController) {
-            _imageViewController = [[BImageViewController alloc] initWithNibName:nil bundle:Nil];
-            _imageViewNavigationController = [[UINavigationController alloc] initWithRootViewController:_imageViewController];
+        url = cell.message.imageURL;
+        
+        if (!_imageViewNavigationController) {
+            _imageViewNavigationController = [BChatSDK.ui imageViewNavigationController];
         }
 
+        // TODO: Refactor this to use the JSON keys
+        url = cell.message.imageURL;
+        // Only allow the user to click if the image is not still loading hence the alpha is 1
+        if (cell.imageView.alpha == 1 && url) {
+
+            [cell showActivityIndicator];
+            cell.imageView.alpha = 0.75;
+            
+            __weak __typeof__(self) weakSelf = self;
+            [cell.imageView sd_setImageWithURL:url placeholderImage:cell.imageView.image completed: ^(UIImage * image, NSError * error, SDImageCacheType cacheType, NSURL * imageURL) {
+                __typeof__(self) strongSelf = weakSelf;
+                
+                [cell hideActivityIndicator];
+                cell.imageView.alpha = 1;
+                
+                [((id<PImageViewController>) strongSelf->_imageViewNavigationController.topViewController) setImage: image];
+                [strongSelf.navigationController presentViewController:strongSelf->_imageViewNavigationController animated:YES completion:Nil];
+            }];
+        }
+    }
+    if ([cell isKindOfClass:[BLocationCell class]]) {
+        if (!_locationViewNavigationController) {
+            _locationViewNavigationController = [BChatSDK.ui locationViewNavigationController];
+        }
+        
+        float longitude = [[cell.message compatibilityMeta][bMessageLongitude] floatValue];
+        float latitude = [[cell.message compatibilityMeta][bMessageLatitude] floatValue];
+        
+        [((id<PLocationViewController>) _locationViewNavigationController.topViewController) setLatitude:latitude longitude:longitude];
+
+        [self.navigationController presentViewController:_locationViewNavigationController animated:YES completion:Nil];
+    }
+    
+    if(BChatSDK.videoMessage && [cell isKindOfClass:BChatSDK.videoMessage.cellClass]) {
+            
         // Only allow the user to click if the image is not still loading hence the alpha is 1
         if (cell.imageView.alpha == 1) {
             
-            // TODO: Refactor this to use the JSON keys
-            NSURL * url = cell.message.imageURL;
-            
+            NSURL * url = [NSURL URLWithString:cell.message.compatibilityMeta[bMessageVideoURL]];
+                        
             // Add an activity indicator while the image is loading
             UIActivityIndicatorView * activityIndicator = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleGray];
             activityIndicator.frame = CGRectMake(cell.imageView.fw/2 - 20, cell.imageView.fh/2 -20, 40, 40);
@@ -437,70 +494,54 @@
             
             [cell.imageView addSubview:activityIndicator];
             [cell.imageView bringSubviewToFront:activityIndicator];
-            cell.imageView.alpha = 0.75;
             
-            __weak __typeof__(self) weakSelf = self;
-            [cell.imageView sd_setImageWithURL:url placeholderImage:cell.imageView.image completed: ^(UIImage * image, NSError * error, SDImageCacheType cacheType, NSURL * imageURL) {
-                
-                // Then remove it here
-                [activityIndicator stopAnimating];
-                [activityIndicator removeFromSuperview];
-                cell.imageView.alpha = 1;
-                
-                _imageViewController.image = image;
-                [weakSelf.navigationController presentViewController:_imageViewNavigationController animated:YES completion:Nil];
-            }];
-        }
-    }
-    if ([cell isKindOfClass:[BLocationCell class]]) {
-        if (!_locationViewController) {
-            _locationViewController = [[BLocationViewController alloc] initWithNibName:nil bundle:Nil];
-            _locationViewNavigationController = [[UINavigationController alloc] initWithRootViewController:_locationViewController];
-        }
-        
-        float longitude = [[cell.message textAsDictionary][bMessageLongitude] floatValue];
-        float latitude = [[cell.message textAsDictionary][bMessageLatitude] floatValue];
-        
-        // Set the location and display the controller
-        _locationViewController.region = [BCoreUtilities regionForLongitude:longitude latitude:latitude];
-        _locationViewController.annotation = [BCoreUtilities annotationForLongitude:longitude latitude:latitude];
-
-        [self.navigationController presentViewController:_locationViewNavigationController animated:YES completion:Nil];
-    }
-    
-    if(NM.videoMessage) {
-        if ([cell isKindOfClass:NM.videoMessage.messageCellClass]) {
+            // Make sure the audio plays even if we're in silent mode
+            [[AVAudioSession sharedInstance]
+             setCategory: AVAudioSessionCategoryPlayback
+             error: nil];
             
-            // Only allow the user to click if the image is not still loading hence the alpha is 1
-            if (cell.imageView.alpha == 1) {
-                
-                // TODO: Refactor this to use JSON keys
-                NSArray * myArray = [cell.message.textString componentsSeparatedByCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@","]];
-                NSURL * url = [NSURL URLWithString:myArray[0]];
-                
-                // Add an activity indicator while the image is loading
-                UIActivityIndicatorView * activityIndicator = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleGray];
-                activityIndicator.frame = CGRectMake(cell.imageView.fw/2 - 20, cell.imageView.fh/2 -20, 40, 40);
-                [activityIndicator startAnimating];
-                
-                [cell.imageView addSubview:activityIndicator];
-                [cell.imageView bringSubviewToFront:activityIndicator];
-                
-                // Initialize the MPMoviePlayerController object using url
-                _videoPlayer = [[MPMoviePlayerController alloc] initWithContentURL:url];
-                
-                // Set control style to default
-                _videoPlayer.controlStyle = MPMovieControlStyleDefault;
-                _videoPlayer.shouldAutoplay = YES;
-                
-                [self.view addSubview:_videoPlayer.view];
-                
-                [_videoPlayer setFullscreen:YES animated:YES];
-                
-            }
+            AVPlayer * player = [[AVPlayer alloc] initWithURL:url];
+            AVPlayerViewController * playerController = [[AVPlayerViewController alloc] init];
+            playerController.player = player;
+            [self presentViewController:playerController animated:YES completion:Nil];
+            
         }
     }
 
+    if (BChatSDK.fileMessage && [cell isKindOfClass:BChatSDK.fileMessage.cellClass]) {
+        NSDictionary * file = cell.message.compatibilityMeta;
+
+        if (![BFileCache isFileCached:cell.message.entityID]) {
+            [cell.imageView setImage:[NSBundle imageNamed:@"file.png" bundle:BChatSDK.fileMessage.bundle]];
+        }
+        
+        [cell showActivityIndicator];
+        
+        NSURL * url = [NSURL URLWithString:file[bMessageFileURL]];
+        [BFileCache cacheFileFromURL:url withFileName:file[bMessageTextKey] andCacheName:cell.message.entityID]
+        .thenOnMain(^id(NSURL * cacheUrl) {
+            NSLog(@"Cache URL: %@", [cacheUrl absoluteString]);
+            [cell setMessage:cell.message];
+            
+            [cell hideActivityIndicator];
+            
+            [self presentDocumentInteractionViewControllerWithURL:cacheUrl andName:nil];
+            return nil;
+        }, ^id(NSError *error) {
+            NSLog(@"Error: %@", error.localizedDescription);
+            [cell hideActivityIndicator];
+            return nil;
+        });
+    }
+}
+
+- (void)presentDocumentInteractionViewControllerWithURL:(NSURL *)url andName:(NSString *)name {
+    _documentInteractionController = [UIDocumentInteractionController interactionControllerWithURL:url];
+    [_documentInteractionController setDelegate:self];
+    if (name) {
+        [_documentInteractionController setName:name];
+    }
+    [_documentInteractionController presentPreviewAnimated:YES];
 }
 
 #pragma Message Delegate
@@ -558,6 +599,10 @@
 
 - (RXPromise *) sendStickerMessage: (NSString *)stickerName {
     return [self handleMessageSend:[delegate sendSticker: stickerName]];
+}
+
+- (RXPromise *) sendFileMessage: (NSDictionary *)file {
+    return [self handleMessageSend:[delegate sendFile: file]];
 }
 
 -(RXPromise *) sendLocationMessage: (CLLocation *) location {
@@ -647,31 +692,48 @@
 }
 
 - (BOOL)tableView:(UITableView *)tableView canEditRowAtIndexPath:(NSIndexPath *)indexPath {
-    // We can only flag posts in public threads
-    id<PElmMessage> message = [self messageForIndexPath:indexPath];
-    return ![message.userModel isEqual:NM.currentUser];
+    return YES;
 }
 
 // This only works for iOS8
 -(NSArray *)tableView:(UITableView *)tableView_ editActionsForRowAtIndexPath:(NSIndexPath *)indexPath {
-    
-    id<PElmMessage> message = [self messageForIndexPath:indexPath];
-    
-    NSString * flagTitle = message.flagged.intValue ? [NSBundle t:bUnflag] : [NSBundle t:bFlag];
-    
-    UITableViewRowAction * button = [UITableViewRowAction rowActionWithStyle:UITableViewRowActionStyleDefault title:flagTitle handler:^(UITableViewRowAction *action, NSIndexPath *indexPath) {
-        
-        [delegate setMessageFlagged:message isFlagged:message.flagged.intValue].thenOnMain(^id(id success) {
-            // Reload the tableView and not [self reloadData] so we don't go to the bottom of the tableView
-            [tableView_ reloadData];
-            return Nil;
-        }, Nil);
+    __weak __typeof__(self) weakSelf = self;
 
-    }];
+    id<PElmMessage> message = [self messageForIndexPath:indexPath];
+    if (message.senderIsMe) {
+        UITableViewRowAction * button = [UITableViewRowAction rowActionWithStyle:UITableViewRowActionStyleDefault
+                                                                           title:[NSBundle t:bDelete]
+                                                                         handler:^(UITableViewRowAction *action, NSIndexPath *indexPath) {
     
-    button.backgroundColor = message.flagged.intValue ? [UIColor darkGrayColor] : [UIColor redColor];
+            [BChatSDK.moderation deleteMessage:message.entityID].thenOnMain(^id(id result) {
+                // Reload the tableView and not [self reloadData] so we don't go to the bottom of the tableView
+                [tableView_ reloadData];
+                return Nil;
+            }, Nil);
+        }];
+        
+        button.backgroundColor = [UIColor redColor];
+        return @[button];
+
+    }
+    else {
+        NSString * flagTitle = message.flagged.intValue ? [NSBundle t:bUnflag] : [NSBundle t:bFlag];
+        
+        UITableViewRowAction * button = [UITableViewRowAction rowActionWithStyle:UITableViewRowActionStyleDefault title:flagTitle handler:^(UITableViewRowAction *action, NSIndexPath *indexPath) {
+            __typeof__(self) strongSelf = weakSelf;
+            [strongSelf.delegate setMessageFlagged:message isFlagged:message.flagged.intValue].thenOnMain(^id(id success) {
+                // Reload the tableView and not [self reloadData] so we don't go to the bottom of the tableView
+                [tableView_ reloadData];
+                return Nil;
+            }, Nil);
+            
+        }];
+        
+        button.backgroundColor = message.flagged.intValue ? [UIColor darkGrayColor] : [UIColor redColor];
+        
+        return @[button];
+    }
     
-    return @[button];
 }
 
 #pragma Handle keyboard
@@ -848,7 +910,7 @@
 }
 
 - (void)updateInterfaceForReachabilityStateChange {
-    BOOL connected = [Reachability reachabilityForInternetConnection].isReachable;
+    BOOL connected = BChatSDK.connectivity.isConnected;
     self.navigationItem.rightBarButtonItem.enabled = connected;
 }
 
@@ -881,5 +943,18 @@
     _typingTimer = Nil;
 }
 
+#pragma UIDocumentInteractionControllerDelegate
+
+- (UIViewController *)documentInteractionControllerViewControllerForPreview:(UIDocumentInteractionController *)controller {
+    return self;
+}
+
+- (UIView *)documentInteractionControllerViewForPreview:(UIDocumentInteractionController *)controller {
+    return self.view;
+}
+
+- (CGRect)documentInteractionControllerRectForPreview:(UIDocumentInteractionController *)controller {
+    return self.view.frame;
+}
 
 @end

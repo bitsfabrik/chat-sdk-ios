@@ -8,8 +8,6 @@
 
 #import <UIKit/UIKit.h>
 #import <ChatSDK/BMessageDelegate.h>
-#import <ChatSDK/PMessageLayout.h>
-//#import "PMessage.h"
 #import <ChatSDK/PElmMessage.h>
 #import <ChatSDK/BMessageCellDelegate.h>
 
@@ -20,6 +18,19 @@
 #define bLeftCapLeft 18
 #define bLeftCapRight 13
 
+#define bReadReceiptWidth 36
+#define bReadReceiptHeight 24
+
+#define bReadReceiptTopPadding 10
+
+#define bTimeLabelPadding 10
+#define bMaxMessageWidth 270
+#define bMaxMessageHeight 300
+#define bMinMessageHeight 50
+#define bUserNameHeight 25
+#define bProfilePictureDiameter 36
+#define bMessageMarginX 70 // So it doesn't overlap the time stamp
+
 @interface BMessageCell : UITableViewCell<BMessageDelegate> {
     UIImage * _meBubbleImage;
     UIImage * _replyBubbleImage;
@@ -29,12 +40,13 @@
     UIImageView * _readMessageImageView;
     
     UILabel * _nameLabel;
+    UIActivityIndicatorView * _activityIndicator;
     
-    id<PElmMessage, PMessageLayout> _message;
+    id<PElmMessage> _message;
 }
 
 @property (nonatomic, readwrite) UIImageView * bubbleImageView;
-@property (nonatomic, readwrite) id<PElmMessage, PMessageLayout> message;
+@property (nonatomic, readwrite) id<PElmMessage> message;
 @property (nonatomic, readwrite, weak) id<BMessageCellDelegate> delegate;
 
 // Let us open the user profile view
@@ -44,5 +56,36 @@
 -(UIView *) cellContentView;
 -(BOOL) supportsCopy;
 +(UIImage *) bubbleWithImage: (UIImage *) bubbleImage withColor: (UIColor *) color;
+
+-(void) showActivityIndicator;
+-(void) hideActivityIndicator;
+
+-(float) bubbleHeight;
+-(float) bubbleWidth;
+
+-(float) cellHeight;
+-(float) cellWidth;
+
+-(float) messageHeight;
+-(float) messageWidth;
+
+-(UIEdgeInsets) bubbleMargin;
+-(UIEdgeInsets) bubblePadding;
+
++(float) bubbleHeight: (id<PElmMessage>) message maxWidth: (float) maxWidth;
++(float) bubbleWidth: (id<PElmMessage>) message maxWidth: (float) maxWidth;
+
++(float) cellHeight: (id<PElmMessage>) message maxWidth: (float) maxWidth;
++(float) cellWidth: (id<PElmMessage>) message;
+
++(float) messageHeight: (id<PElmMessage>) message;
++(float) messageWidth: (id<PElmMessage>) message;
+
++(UIEdgeInsets) bubbleMargin: (id<PElmMessage>) message;
++(UIEdgeInsets) bubblePadding: (id<PElmMessage>) message;
+
++(float) getText: (NSString *) text heightWithWidth: (float) width;
++(float) getText: (NSString *) text heightWithFont: (UIFont *) font withWidth: (float) width;
++(float) maxTextWidth: (id<PElmMessage>) message;
 
 @end

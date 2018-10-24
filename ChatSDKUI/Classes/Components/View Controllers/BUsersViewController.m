@@ -8,8 +8,8 @@
 
 #import "BUsersViewController.h"
 
-#import <ChatSDK/ChatCore.h>
-#import <ChatSDK/ChatUI.h>
+#import <ChatSDK/Core.h>
+#import <ChatSDK/UI.h>
 
 #define bUserCellIdentifier @"UserCellIdentifier"
 #define bLeaveCellIdentifier @"LeaveCellIdentifier"
@@ -31,11 +31,11 @@
 
 -(instancetype) initWithThread: (id<PThread>) thread {
 
-    self = [super initWithNibName:@"BUsersViewController" bundle:[NSBundle chatUIBundle]];
+    self = [super initWithNibName:@"BUsersViewController" bundle:[NSBundle uiBundle]];
     if (self) {
         
         _users = [NSMutableArray arrayWithArray: thread.users.allObjects];
-        [_users removeObject:NM.currentUser];
+        [_users removeObject:BChatSDK.currentUser];
         
         _thread = thread;
     }
@@ -62,14 +62,13 @@
 
 - (void)viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
-    
-    _internetConnectionObserver = [[NSNotificationCenter defaultCenter] addObserverForName:kReachabilityChangedNotification object:nil queue:Nil usingBlock:^(NSNotification * notification) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            if (![Reachability reachabilityForInternetConnection].isReachable) {
-                [self dismissViewControllerAnimated:YES completion:nil];
-            }
-        });
+   
+    _internetConnectionHook = [BHook hook:^(NSDictionary * data) {
+        if(!BChatSDK.connectivity.isConnected) {
+            [self dismissViewControllerAnimated:YES completion:nil];
+        }
     }];
+    [BChatSDK.hook addHook:_internetConnectionHook withName:bHookInternetConnectivityChanged];
     
     _threadUsersObserver = [[NSNotificationCenter defaultCenter] addObserverForName:bNotificationThreadUsersUpdated object:Nil queue:Nil usingBlock:^(NSNotification * notification) {
         dispatch_async(dispatch_get_main_queue(), ^{
@@ -80,7 +79,8 @@
 
 - (void)viewDidDisappear:(BOOL)animated {
     [super viewDidDisappear:animated];
-    [[NSNotificationCenter defaultCenter] removeObserver:_internetConnectionObserver];
+    [BChatSDK.hook removeHook:_internetConnectionHook withName:bHookInternetConnectivityChanged];
+
     [[NSNotificationCenter defaultCenter] removeObserver:_threadUsersObserver];
 }
 
@@ -113,7 +113,7 @@
             id<PUser> user = _users[indexPath.row];
             
             cell.textLabel.text = user.name;
-            cell.imageView.image = user && user.thumbnail ? [UIImage imageWithData:user.thumbnail] : [NSBundle chatUIImageNamed: @"icn_user.png"];
+            cell.imageView.image = user && user.thumbnail ? [UIImage imageWithData:user.thumbnail] : [NSBundle uiImageNamed: @"icn_user.png"];
             
             cell.imageView.layer.cornerRadius = 20;
             cell.imageView.clipsToBounds = YES;
@@ -167,7 +167,7 @@
             id<PUser> user = _users[indexPath.row];
             
             // Open the users profile
-            UIViewController * profileView = [[BInterfaceManager sharedManager].a profileViewControllerWithUser:user];
+            UIViewController * profileView = [BChatSDK.ui profileViewControllerWithUser:user];
             [self.navigationController pushViewController:profileView animated:YES];
         }
     }
@@ -175,26 +175,23 @@
         
         // Use initWithThread here to make sure we don't show any users already in the thread
         // Show the friends view controller
-        BFriendsListViewController * flvc = [[BInterfaceManager sharedManager].a friendsViewControllerWithUsersToExclude:_thread.users.allObjects];
-        flvc.rightBarButtonActionTitle = [NSBundle t:bAdd];
-        
-        // The friends view controller will give us a list of users to invite
-        flvc.usersToInvite = ^(NSArray * users, NSString * groupName){
+        UINavigationController * nav = [BChatSDK.ui friendsNavigationControllerWithUsersToExclude:_thread.users.allObjects onComplete:^(NSArray * users, NSString * groupName){
             
-            [NM.core addUsers:users toThread:_thread].thenOnMain(^id(id success){
+            [BChatSDK.core addUsers:users toThread:_thread].thenOnMain(^id(id success){
                 [UIView alertWithTitle:[NSBundle t:bSuccess] withMessage:[NSBundle t:bAdded]];
                 
                 [self reloadData];
                 return Nil;
             }, Nil);
-        };
+        }];
+        [((id<PFriendsListViewController>) nav.topViewController) setRightBarButtonActionTitle:[NSBundle t: bAdd]];
         
-        [self presentViewController:[[UINavigationController alloc] initWithRootViewController:flvc] animated:YES completion:Nil];
+        [self presentViewController:nav animated:YES completion:Nil];
     }
     if (indexPath.section == bLeaveConvoSection) {
         
-        [NM.core deleteThread:_thread];
-        [NM.core leaveThread:_thread];
+        [BChatSDK.core deleteThread:_thread];
+        [BChatSDK.core leaveThread:_thread];
         
         [self.navigationController dismissViewControllerAnimated:NO completion:^{
             if (self.parentNavigationController) {
@@ -226,7 +223,7 @@
 - (void)reloadData {
     
     _users = [NSMutableArray arrayWithArray: _thread.users.allObjects];
-    [_users removeObject:NM.currentUser];
+    [_users removeObject:BChatSDK.currentUser];
     
     [self.tableView reloadData];
 }

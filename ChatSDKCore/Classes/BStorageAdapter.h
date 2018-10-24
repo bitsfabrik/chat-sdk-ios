@@ -24,6 +24,11 @@
 @class BThreadDef;
 @class NSFetchRequest;
 
+typedef enum {
+    bQueueTypeMain,
+    bQueueTypeBackground,
+} bQueueType;
+
 @protocol BStorageAdapter <NSObject>
 
 -(NSArray *) fetchEntitiesWithName: (NSString *) entityName withPredicate: (NSPredicate *) predicate;
@@ -50,6 +55,38 @@
 -(void) deleteEntitiesWithType: (NSString *) type;
 -(void) deleteEntities: (NSArray *) entities;
 -(void) deleteAllData;
+
+-(id<PThread>) threadForEntityID: (NSString *) entityID;
+-(id<PUser>) userForEntityID: (NSString *) entityID;
+-(id<PMessage>) messageForEntityID: (NSString *) entityID;
+
+
+//-(RXPromise *) safeFetchEntitiesWithName: (NSString *) entityName withPredicate: (NSPredicate *) predicate;
+//-(RXPromise *) safeFetchEntitiesWithName: (NSString *) entityName;
+//-(RXPromise *) safeFetchEntityWithID: (NSString *) entityID withType: (NSString *) type;
+//-(RXPromise *) safeFetchOrCreateEntityWithID: (NSString *) entityID withType: (NSString *) type;
+//-(RXPromise *) safeFetchOrCreateEntityWithPredicate: (NSPredicate *) predicate withType: (NSString *) type;
+//-(RXPromise *) safeFetchThreadWithUsers: (NSArray *) users;
+//-(RXPromise *) safeExecuteFetchRequest: (NSFetchRequest *) fetchRequest entityName: (NSString *) entityName predicate: (NSPredicate *) predicate;
+//
+//-(RXPromise *) safeCreateMessageEntity;
+//-(RXPromise *) safeCreateThreadEntity;
+//
+//-(RXPromise *) safeCreateEntity: (NSString *) entityName;
+//
+//-(RXPromise *) safeBeginUndoGroup;
+//-(RXPromise *) safeEndUndoGroup;
+//-(RXPromise *) safeUndo;
+//
+//-(RXPromise *) safeDeleteEntity: (id) entity;
+//-(RXPromise *) safeDeleteEntitiesWithType: (NSString *) type;
+//-(RXPromise *) safeDeleteEntities: (NSArray *) entities;
+//-(RXPromise *) safeDeleteAllData;
+
+-(RXPromise *) performOnPrivate: (id (^)(void)) block;
+-(RXPromise *) performOnMain: (id (^)(void)) block;
+-(bQueueType) queueType;
+
 
 @end
 

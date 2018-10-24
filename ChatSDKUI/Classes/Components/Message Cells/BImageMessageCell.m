@@ -8,9 +8,9 @@
 
 #import "BImageMessageCell.h"
 
-#import <ChatSDK/ChatCore.h>
+#import <ChatSDK/Core.h>
 #import <ChatSDK/PElmMessage.h>
-#import <ChatSDK/ChatUI.h>
+#import <ChatSDK/UI.h>
 
 
 @implementation BImageMessageCell
@@ -33,19 +33,28 @@
     return self;
 }
 
--(void) setMessage: (id<PElmMessage,PMessageLayout>) message withColorWeight:(float)colorWeight {
+-(void) setMessage: (id<PElmMessage>) message withColorWeight:(float)colorWeight {
     [super setMessage:message withColorWeight:colorWeight];
     
     // Get rid of the bubble for images
     self.bubbleImageView.image = Nil;
     
-    imageView.alpha = [message.delivered boolValue] ? 1 : 0.75;
+    BOOL isDelivered = [message.delivered boolValue] || !message.senderIsMe;
+    if (!isDelivered) {
+        [self showActivityIndicator];
+        imageView.alpha = 0.75;
+    }
+    else {
+        [self hideActivityIndicator];
+        imageView.alpha = 1;
+    }
+    
     //imageView.contentMode = UIViewContentModeScaleAspectFit;
     imageView.contentMode = UIViewContentModeScaleAspectFill;
     
     UIImage * placeholder = [UIImage imageWithData:message.placeholder];
     if (!placeholder) {
-        placeholder = [NSBundle chatUIImageNamed:bDefaultPlaceholderImage];
+        placeholder = [NSBundle uiImageNamed:bDefaultPlaceholderImage];
     }
         
     [imageView sd_setImageWithURL:message.thumbnailURL

@@ -8,8 +8,8 @@
 
 #import "BLocationCell.h"
 
-#import <ChatSDK/ChatUI.h>
-#import <ChatSDK/ChatCore.h>
+#import <ChatSDK/UI.h>
+#import <ChatSDK/Core.h>
 
 @implementation BLocationCell
 
@@ -35,19 +35,19 @@
     return self;
 }
 
--(void) setMessage: (id<PElmMessage, PMessageLayout>) message withColorWeight:(float)colorWeight {
+-(void) setMessage: (id<PElmMessage>) message withColorWeight:(float)colorWeight {
     [super setMessage:message withColorWeight:colorWeight];
     
     self.bubbleImageView.image = Nil;
     
-    float longitude = [[self.message textAsDictionary][bMessageLongitude] floatValue];
-    float latitude = [[self.message textAsDictionary][bMessageLatitude] floatValue];
+    float longitude = [[self.message compatibilityMeta][bMessageLongitude] floatValue];
+    float latitude = [[self.message compatibilityMeta][bMessageLatitude] floatValue];
     
     // Load the map from Google Maps
     NSString * api = @"https://maps.googleapis.com/maps/api/staticmap";
     NSString * markers = [NSString stringWithFormat:@"markers=%f,%f", latitude, longitude];
     NSString * size = [NSString stringWithFormat:@"zoom=18&size=%ix%i", bMaxMessageWidth, bMaxMessageWidth];
-    NSString * key = [NSString stringWithFormat:@"key=%@", [BChatSDK config].googleMapsApiKey];
+    NSString * key = [NSString stringWithFormat:@"key=%@", BChatSDK.config.googleMapsApiKey];
     NSString * url = [NSString stringWithFormat:@"%@?%@&%@&%@", api, markers, size, key];
     
     [mapImageView sd_setImageWithURL:url placeholderImage:Nil options:SDWebImageLowPriority & SDWebImageScaleDownLargeImages];

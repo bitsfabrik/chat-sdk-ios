@@ -11,15 +11,16 @@
 #import "bMessageStatus.h"
 
 typedef enum {
-    bMessageTypeText,
-    bMessageTypeLocation,
-    bMessageTypeImage,
-    bMessageTypeAudio,
-    bMessageTypeVideo,
-    bMessageTypeSystem,
-    bMessageTypeSticker,
-    bMessageTypeFile,
-    bMessageTypeCustom,
+    bMessageTypeAll = -1,
+    bMessageTypeText = 0,
+    bMessageTypeLocation = 1,
+    bMessageTypeImage = 2,
+    bMessageTypeAudio = 3,
+    bMessageTypeVideo = 4,
+    bMessageTypeSystem = 5,
+    bMessageTypeSticker = 6,
+    bMessageTypeFile = 7,
+    bMessageTypeCustom = 99,
 } bMessageType;
 
 typedef enum {
@@ -39,6 +40,8 @@ typedef enum {
 #define bMessageImageWidth @"image-width"
 #define bMessageImageHeight @"image-height"
 #define bMessageVideoURL @"video-url"
+#define bMessageFileURL @"file-url"
+#define bMessageMimeType @"mime-type"
 
 #define bMessageLongitude @"longitude"
 #define bMessageLatitude @"latitude"
@@ -68,6 +71,7 @@ typedef enum {
 -(NSString *) text;
 
 -(NSString *) textString;
+-(void) setTextString: (NSString *) text;
 
 -(NSDictionary *) json;
 -(void) setJson: (NSDictionary *) json;
@@ -87,7 +91,9 @@ typedef enum {
 -(void) setEntityID:(NSString *)uid;
 -(NSString *) entityID;
 
--(NSDictionary *) textAsDictionary;
+/**
+ * Deprecated in favour of setJson:
+ */
 -(NSError *) setTextAsDictionary: (NSDictionary *) dict;
 
 /**
@@ -133,18 +139,14 @@ typedef enum {
 
 - (NSInteger)imageHeight;
 
--(void) setMetaValue: (id) value forKey: (NSString *) key;
--(id) metaValueForKey: (NSString *) key;
-
--(void) setMetaDictionary: (NSDictionary *) dict;
--(NSDictionary *) metaDictionary;
+-(void) setMeta: (NSDictionary *) meta;
+-(NSDictionary *) meta;
 
 -(bMessagePos) messagePosition;
 -(BOOL) senderIsMe;
 -(id<PMessage>) lazyNextMessage;
 -(id<PMessage>) lazyLastMessage;
 -(void) updatePosition;
-
 
 - (BOOL)showUserNameLabelForPosition: (bMessagePos) position;
 
@@ -154,7 +156,7 @@ typedef enum {
 
 - (NSNumber *)flagged;
 -(void) setFlagged: (NSNumber *) flagged;
--(id<PMessage>) copy;
+//-(id<PMessage>) copy;
 
 @optional
 
@@ -163,6 +165,6 @@ typedef enum {
 -(void) setReadStatus: (bMessageReadStatus) status_ forUserID: (NSString *) uid;
 -(bMessageReadStatus) readStatusForUserID: (NSString *) uid;
 -(bMessageReadStatus) readStatus;
-
+-(void) setMetaValue: (id) value forKey: (NSString *) key;
 
 @end

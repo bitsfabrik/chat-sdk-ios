@@ -6,13 +6,22 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <ChatSDK/PMessage.h>
 
 #define bEmailTitle @"email_title"
 #define bEmailBody @"email_body"
 #define bSMSBody @"sms_body"
 
+#define bXMPPKey @"xmpp"
+#define bXMPPHostAddressKey @"host_address"
+#define bXMPPDomainKey @"domain"
+#define bXMPPPortKey @"port"
+#define bXMPPResourceKey @"resource"
+
 @interface BConfiguration : NSObject {
     NSString * _defaultUserName;
+    NSMutableDictionary * _messageBubblePadding;
+    NSMutableDictionary * _messageBubbleMargin;
 }
 
 // Background color of messages: hex value like "FFFFFF"
@@ -22,9 +31,6 @@
 // The Firebase root path. Data will be added to Firebase root/rootPath...
 // this allows you to run multiple chat instances on one Firebase database
 @property (nonatomic, readwrite) NSString * rootPath;
-
-// Firebase cloud messaging server key
-@property (nonatomic, readwrite) NSString * firebaseCloudMessagingServerKey;
 
 // Enable the unread messages count on the main app badge
 @property (nonatomic, readwrite) BOOL appBadgeEnabled;
@@ -42,6 +48,9 @@
 
 // Which image should be used if no avatar is set
 @property (nonatomic, readwrite) UIImage * defaultBlankAvatar;
+
+// Which image should be used if no avatar is set
+@property (nonatomic, readwrite) UIImage * defaultGroupChatAvatar;
 
 @property (nonatomic, readwrite) NSString * timeFormat;
 
@@ -61,6 +70,12 @@
 @property (nonatomic, readwrite) NSString * twitterApiKey;
 @property (nonatomic, readwrite) NSString * twitterSecret;
 
+@property (nonatomic, readwrite) NSString * xmppDomain;
+@property (nonatomic, readwrite) NSString * xmppHostAddress;
+@property (nonatomic, readwrite) int xmppPort;
+@property (nonatomic, readwrite) NSString * xmppResource;
+@property (nonatomic, readwrite) int xmppMucMessageHistory;
+
 // Google login credentials
 @property (nonatomic, readwrite) NSString * googleClientKey;
 
@@ -78,6 +93,10 @@
 
 // When a push notification is clicked, should the chat screen be opened
 @property(nonatomic, readwrite) BOOL shouldOpenChatWhenPushNotificationClicked;
+
+// This allows us to make it so the chat will only be opened if the tab bar is visible. This can be
+// useful in some advanced situations where the tab bar may not be the root view
+@property(nonatomic, readwrite) BOOL shouldOpenChatWhenPushNotificationClickedOnlyIfTabBarVisible;
 
 // Should the client send push notifications?
 @property(nonatomic, readwrite) BOOL clientPushEnabled;
@@ -109,6 +128,8 @@
 @property (nonatomic, readwrite) BOOL imageMessagesEnabled;
 
 @property (nonatomic, readwrite) int audioMessageMaxLengthSeconds;
+
+@property (nonatomic, readwrite) BOOL prefersLargeTitles;
 
 // How many messages should be loaded initially when a chat is opened
 @property (nonatomic, readwrite) int chatMessagesToLoad;
@@ -176,5 +197,16 @@
 -(void) configureForCompatibilityWithVersions: (NSArray *) versions;
 
 +(BConfiguration *) configuration;
+
+-(void) xmppWithHostAddress: (NSString *) hostAddress;
+-(void) xmppWithDomain: (NSString *) domain hostAddress: (NSString *) hostAddress;
+-(void) xmppWithDomain: (NSString *) domain hostAddress: (NSString *) hostAddress port: (int) port;
+-(void) xmppWithDomain: (NSString *) domain hostAddress: (NSString *) hostAddress port: (int) port resource: (NSString *) resource;
+
+-(void) setMessageBubbleMargin: (UIEdgeInsets) margin forMessageType: (bMessageType) type;
+-(void) setMessageBubblePadding: (UIEdgeInsets) padding forMessageType: (bMessageType) type;
+
+-(NSValue *) messageBubbleMarginForType: (bMessageType) type;
+-(NSValue *) messageBubblePaddingForType: (bMessageType) type;
 
 @end

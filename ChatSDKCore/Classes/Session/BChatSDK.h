@@ -6,16 +6,25 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <ChatSDK/BNetworkFacade.h>
 
 @class BConfiguration;
 @class RXPromise;
+@class BBackgroundPushNotificationQueue;
+@class BInternetConnectivity;
+
 @protocol PInterfaceFacade;
+@protocol PUser;
+@protocol BStorageAdapter;
 
 @interface BChatSDK : NSObject {
     BConfiguration * _configuration;
+    id<PInterfaceFacade> _interfaceManager;
+    BBackgroundPushNotificationQueue * _pushQueue;
 }
 
 @property (nonatomic, readonly) BConfiguration * configuration;
+@property (nonatomic, readwrite) id<PInterfaceFacade> interfaceManager;
 
 +(BChatSDK *) shared;
 +(BConfiguration *) config;
@@ -40,5 +49,40 @@
 
 // Logout
 +(RXPromise *) logout;
+
+// This is used if we get a push notification while the user isn't authenticated. We add it to the
+// queue then check the queue when we launch the main activity and trigger the push handling
+-(BBackgroundPushNotificationQueue *) pushQueue;
+
+// API Methods
++(id<PCoreHandler>) core;
++(id<PAuthenticationHandler>) auth;
++(id<PUploadHandler>) upload;
++(id<PVideoMessageHandler>) videoMessage;
++(id<PAudioMessageHandler>) audioMessage;
++(id<PImageMessageHandler>) imageMessage;
++(id<PLocationMessageHandler>) locationMessage;
++(id<PPushHandler>) push;
++(id<PContactHandler>) contact;
++(id<PTypingIndicatorHandler>) typingIndicator;
++(id<PModerationHandler>) moderation;
++(id<PSearchHandler>) search;
++(id<PPublicThreadHandler>) publicThread;
++(id<PBlockingHandler>) blocking;
++(id<PLastOnlineHandler>) lastOnline;
++(id<PNearbyUsersHandler>) nearbyUsers;
++(id<PReadReceiptHandler>) readReceipt;
++(id<PStickerMessageHandler>) stickerMessage;
++(id<PSocialLoginHandler>) socialLogin;
++(id<PUser>) currentUser;
++(id) handler: (NSString *) name;
++(id<PHookHandler>) hook;
++(id<PUsersHandler>) users;
++(BOOL) isMe: (id<PUser>) user;
++(id<PInterfaceFacade>) ui;
++(id<BStorageAdapter>) db;
++(id<PFileMessageHandler>) fileMessage;
++(id<PEncryptionHandler>) encryption;
++(id<PInternetConnectivityHandler>) connectivity;
 
 @end

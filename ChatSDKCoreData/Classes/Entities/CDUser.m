@@ -6,8 +6,8 @@
 //
 //
 
-#import <ChatSDK/ChatCore.h>
-#import <ChatSDK/ChatCoreData.h>
+#import <ChatSDK/Core.h>
+#import <ChatSDK/CoreData.h>
 
 #define bKeyKey @"key"
 #define bValueKey @"value"
@@ -15,33 +15,39 @@
 @implementation CDUser
 
 -(void) setName: (NSString *) name {
-    [self setMetaString:name forKey:bUserNameKey];
+    [self setMetaValue:name forKey:bUserNameKey];
 }
 
 -(NSString *) name {
-    return [self metaStringForKey:bUserNameKey];
+    return [self.meta metaStringForKey:bUserNameKey];
 }
 
 -(void) setEmail:(NSString *)email {
-    [self setMetaString:email forKey:bUserEmailKey];
+    [self setMetaValue:email forKey:bUserEmailKey];
 }
 
 -(NSString *) email {
-    return [self metaStringForKey:bUserEmailKey];
+    return [self.meta metaStringForKey:bUserEmailKey];
 }
 
 -(NSString *) phoneNumber {
-    return [self metaStringForKey:bUserPhoneKey];
+    return [self.meta metaStringForKey:bUserPhoneKey];
 }
 
 -(void) setPhoneNumber:(NSString *)phoneNumber {
-    [self setMetaString:phoneNumber forKey:bUserPhoneKey];
+    [self setMetaValue:phoneNumber forKey:bUserPhoneKey];
 }
 
 -(NSString *) pushChannel {
-    return [[NSString stringWithFormat:@"%@_%@", bUserPrefixKey, [self.entityID stringByReplacingOccurrencesOfString:@":" withString:@"_"]] stringByReplacingOccurrencesOfString:@"%3A" withString:@"_"];
+    NSString * channel = self.entityID;
+    channel = [channel stringByReplacingOccurrencesOfString:@"." withString:@"1"];
+    channel = [channel stringByReplacingOccurrencesOfString:@"%2E" withString:@"1"];
+    channel = [channel stringByReplacingOccurrencesOfString:@"@" withString:@"2"];
+    channel = [channel stringByReplacingOccurrencesOfString:@"%40" withString:@"2"];
+    channel = [channel stringByReplacingOccurrencesOfString:@":" withString:@"3"];
+    channel = [channel stringByReplacingOccurrencesOfString:@"%3A" withString:@"3"];
+    return channel;
 }
-
 
 -(CDUserAccount *) accountWithType: (bAccountType) type {
     for (CDUserAccount * account in self.linkedAccounts) {
@@ -50,6 +56,17 @@
         }
     }
     return Nil;
+}
+
+-(void) updateMeta: (NSDictionary *) dict {
+    if (!self.meta) {
+        self.meta = @{};
+    }
+    self.meta = [self.meta updateMetaDict:dict];
+}
+
+-(void) setMetaValue: (id) value forKey: (NSString *) key {
+    [self updateMeta:@{key: value ? value : @""}];
 }
 
 //-(void) addContact: (id<PUser>) user {
@@ -116,9 +133,9 @@
         }
         
         // Then try to load the image from the URL
-        NSString * imageURL = [self metaStringForKey:bUserPictureURLKey];
+        NSString * imageURL = [self.meta metaStringForKey:bUserImageURLKey];
         if (imageURL) {
-            return [BCoreUtilities fetchImageFromURL:imageURL].thenOnMain(^id(UIImage * image) {
+            return [BCoreUtilities fetchImageFromURL:[NSURL URLWithString:imageURL]].thenOnMain(^id(UIImage * image) {
                 if(image) {
                     [self setImage:UIImagePNGRepresentation(image)];
                 }
@@ -142,9 +159,9 @@
         }
         
         // Then try to load the image from the URL
-        NSString * imageURL = [self metaStringForKey:bUserPictureURLKey];
+        NSString * imageURL = [self.meta metaStringForKey:bUserImageURLKey];
         if (imageURL) {
-            return [BCoreUtilities fetchImageFromURL:imageURL].thenOnMain(^id(UIImage * image) {
+            return [BCoreUtilities fetchImageFromURL:[NSURL URLWithString:imageURL]].thenOnMain(^id(UIImage * image) {
                 if(image) {
                     [self setThumbnail:UIImagePNGRepresentation(image)];
                 }
@@ -225,21 +242,20 @@
 }
 
 -(NSString *) imageURL {
-    return [self metaStringForKey:bUserPictureURLKey];
+    return [self.meta metaStringForKey:bUserImageURLKey];
 }
 
 -(void) setImageURL: (NSString *) url {
-    [self setMetaString:url forKey:bUserPictureURLKey];
-    [self setMetaString:url forKey:bUserPictureURLThumbnailKey];
+    [self updateMeta:@{bUserImageURLKey: url, bUserThumbnailURLKey: url}];
 }
 
 // TODO: Remove UI dependency on CoreData
 -(UIImage *) defaultImage {
-    return [BChatSDK config].defaultBlankAvatar;
+    return BChatSDK.config.defaultBlankAvatar;
 }
 
 -(BOOL) isMe {
-    return [self.entityID isEqualToString:NM.currentUser.entityID];
+    return [self.entityID isEqualToString:BChatSDK.currentUser.entityID];
 }
 
 -(void) optimize {

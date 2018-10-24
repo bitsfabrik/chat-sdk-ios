@@ -8,8 +8,8 @@
 
 #import "BFriendsListViewController.h"
 
-#import <ChatSDK/ChatCore.h>
-#import <ChatSDK/ChatUI.h>
+#import <ChatSDK/Core.h>
+#import <ChatSDK/UI.h>
 
 #define bUserCellIdentifier @"bUserCellIdentifier"
 
@@ -34,16 +34,17 @@
 // If we create it with a thread then we look at who is in the thread and make sure they don't come up on the lists
 // If we are creating a new thread then we don't mind
 
--(instancetype) initWithUsersToExclude: (NSArray *) users {
+-(instancetype) initWithUsersToExclude: (NSArray *) users onComplete: (void(^)(NSArray * users, NSString * name)) action {
     if ((self = [self init])) {
         self.title = [NSBundle t:bPickFriends];
         [_contactsToExclude addObjectsFromArray:users];
+        self.usersToInvite = action;
     }
     return self;
 }
 
 -(instancetype) init {
-    self = [super initWithNibName:@"BFriendsListViewController" bundle:[NSBundle chatUIBundle]];
+    self = [super initWithNibName:@"BFriendsListViewController" bundle:[NSBundle uiBundle]];
     if (self) {
         self.title = [NSBundle t:bPickFriends];
         _selectedContacts = [NSMutableArray new];
@@ -82,7 +83,7 @@
     
     [self reloadData];
     
-    [tableView registerNib:[UINib nibWithNibName:@"BUserCell" bundle:[NSBundle chatUIBundle]] forCellReuseIdentifier:bUserCellIdentifier];
+    [tableView registerNib:[UINib nibWithNibName:@"BUserCell" bundle:[NSBundle uiBundle]] forCellReuseIdentifier:bUserCellIdentifier];
 
     [self setGroupNameHidden:YES duration:0];
 }
@@ -106,13 +107,14 @@
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:YES];
     
-    _internetConnectionObserver = [[NSNotificationCenter defaultCenter] addObserverForName:kReachabilityChangedNotification object:nil queue:Nil usingBlock:^(NSNotification * notification) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            if (![Reachability reachabilityForInternetConnection].isReachable) {
-                [self dismissViewControllerAnimated:YES completion:nil];
-            }
-        });
+    __weak __typeof__(self) weakSelf = self;
+    _internetConnectionHook = [BHook hook:^(NSDictionary * data) {
+        __typeof__(self) strongSelf = weakSelf;
+        if (!BChatSDK.connectivity.isConnected) {
+            [self dismissViewControllerAnimated:YES completion:nil];
+        }
     }];
+    [BChatSDK.hook addHook:_internetConnectionHook withName:bHookInternetConnectivityChanged];
     
     [self reloadData];
 }
@@ -138,7 +140,7 @@
 
 - (void)viewDidDisappear:(BOOL)animated {
     [super viewDidDisappear:animated];
-    [[NSNotificationCenter defaultCenter] removeObserver:_internetConnectionObserver];
+    [BChatSDK.hook removeHook:_internetConnectionHook withName:bHookInternetConnectivityChanged];
 }
 
 -(void) composeMessage {
@@ -305,7 +307,7 @@
     [_contacts removeAllObjects];
     
     if(_overrideContacts == Nil) {
-        [_contacts addObjectsFromArray:[NM.contact contactsWithType:bUserConnectionTypeContact]];
+        [_contacts addObjectsFromArray:[BChatSDK.contact contactsWithType:bUserConnectionTypeContact]];
     }
     else {
         [_contacts addObjectsFromArray: self.overrideContacts()];
@@ -315,11 +317,11 @@
     
     // _contactsToExclude is the users already in the thread - make sure we don't include anyone already in the thread
     [_contacts removeObjectsInArray:_contactsToExclude];
-    [_contacts sortUsersInAlphabeticalOrder];
+    [_contacts sortOnlineThenAlphabetical];
     
     if (_filterByName && _filterByName.length) {
-        NSPredicate * preda = [NSPredicate predicateWithFormat:@"name contains[c] %@", _filterByName];
-        [_contacts filterUsingPredicate:preda];
+        NSPredicate * predicate = [NSPredicate predicateWithFormat:@"name contains[c] %@", _filterByName];
+        [_contacts filterUsingPredicate:predicate];
     }
     
     [tableView reloadData];
@@ -380,8 +382,7 @@
 }
 
 - (void)updateButtonStatusForInternetConnection {
-    
-    BOOL connected = [Reachability reachabilityForInternetConnection].isReachable;
+    BOOL connected = BChatSDK.connectivity.isConnected;
     self.navigationItem.rightBarButtonItem.enabled = connected;
 }
 

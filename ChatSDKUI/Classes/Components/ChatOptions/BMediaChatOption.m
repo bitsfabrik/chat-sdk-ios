@@ -7,8 +7,8 @@
 //
 
 #import "BMediaChatOption.h"
-#import <ChatSDK/ChatCore.h>
-#import <ChatSDK/ChatUI.h>
+#import <ChatSDK/Core.h>
+#import <ChatSDK/UI.h>
 
 #import <MobileCoreServices/MobileCoreServices.h>
 
@@ -38,7 +38,7 @@
             break;
     }
 
-    return [NSBundle chatUIImageNamed:image];
+    return [NSBundle uiImageNamed:image];
 }
 
 -(NSString *) title {
@@ -64,10 +64,10 @@
 - (RXPromise * ) execute {
     BSelectMediaAction * action =  [[BSelectMediaAction alloc] initWithType:_type viewController:self.parent.delegate.currentViewController];
     return [action execute].thenOnMain(^id(id success) {
-        if(action.videoData && action.coverImage && NM.videoMessage) {
+        if(action.videoData && action.coverImage && BChatSDK.videoMessage) {
             return [self.parent.delegate sendVideoMessage:action.videoData withCoverImage:action.coverImage];
         }
-        else if(action.photo && NM.imageMessage) {
+        else if(action.photo && BChatSDK.imageMessage) {
             return [self.parent.delegate sendImageMessage:action.photo];
         }
         return Nil;

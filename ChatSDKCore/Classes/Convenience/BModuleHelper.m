@@ -6,7 +6,7 @@
 //
 
 #import "BModuleHelper.h"
-#import <ChatSDK/ChatCore.h>
+#import <ChatSDK/Core.h>
 
 @implementation BModuleHelper
 
@@ -29,7 +29,7 @@
             return bServerXMPP;
         }
     }
-    return [BChatSDK shared].configuration.defaultServer;
+    return BChatSDK.shared.configuration.defaultServer;
 }
 
 +(void) activateModulesForFirebase {
@@ -49,8 +49,10 @@
     [self activateModuleForName:@"BReadReceiptsModule"];
     [self activateModuleForName:@"BTypingIndicatorModule"];
     [self activateModuleForName:@"BStickerMessageModule"];
+    [self activateModuleForName:@"BFileMessageModule"];
     [self activateModuleForName:@"BDiagnosticModule"];
     [self activateModuleForName:@"BContactBookModule"];
+    [self activateModuleForName:@"ChatSDKModulesSwift.E2EModule"];
     [self activateModuleForName:@"BKeyboardOverlayOptionsModule"];
 }
 
@@ -67,7 +69,8 @@
     }
     
     [self activateModuleForName:@"BCoreDataStorageModule"];
-    
+    [self activateModuleForName:@"BReachabilityModule"];
+
     [self activateModuleForName:@"BFirebaseFileStorageModule" server:server];
     [self activateModuleForName:@"BFirebasePushModule"];
 }

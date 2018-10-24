@@ -8,8 +8,8 @@
 
 #import "BSearchViewController.h"
 
-#import <ChatSDK/ChatCore.h>
-#import <ChatSDK/ChatUI.h>
+#import <ChatSDK/Core.h>
+#import <ChatSDK/UI.h>
 
 #define bCellIdentifier @"bCellIdentifier"
 
@@ -20,12 +20,11 @@
 @implementation BSearchViewController
 
 @synthesize tableView;
-@synthesize searchBox;
-@synthesize searchTermButton;
-@synthesize activityView;
 @synthesize usersSelected;
 @synthesize addButton = _addButton;
 @synthesize selectedUsers = _selectedUsers;
+@synthesize currentSearchIndex = _currentSearchIndex;
+@synthesize searchTermNavigationController = _searchTermNavigationController;
 
 -(instancetype) initWithUsersToExclude: (NSArray *) excludedUsers {
     return [self initWithUsersToExclude:excludedUsers selectedAction:Nil];
@@ -33,7 +32,7 @@
 
 -(instancetype) initWithUsersToExclude: (NSArray *) excludedUsers selectedAction: (void(^)(NSArray * users)) action {
     
-    self = [super initWithNibName:@"BSearchViewController" bundle:[NSBundle chatUIBundle]];
+    self = [super initWithNibName:@"BSearchViewController" bundle:[NSBundle uiBundle]];
     if (self) {
         _users = [NSMutableArray new];
         _selectedUsers = [NSMutableArray new];
@@ -42,34 +41,55 @@
        
         _usersToExclude = excludedUsers;
         self.usersSelected = action;
-        _showKeyboardOnLoad = YES;
         
-//        _searchController = [[UISearchController alloc] initWithSearchResultsController:Nil];
-//        _searchController.searchResultsUpdater = self;
-//        _searchController.delegate = self;
-//        _searchController.searchBar.delegate = self;
-//
-//        _searchController.hidesNavigationBarDuringPresentation = NO;
-//        _searchController.dimsBackgroundDuringPresentation = YES;
+        _searchController = [[UISearchController alloc] initWithSearchResultsController:Nil];
+        _searchController.searchResultsUpdater = self;
+        _searchController.delegate = self;
+        _searchController.searchBar.delegate = self;
+
+        _searchController.hidesNavigationBarDuringPresentation = NO;
+        _searchController.dimsBackgroundDuringPresentation = NO;
         
-//        self.navigationItem.titleView = _searchController.searchBar;
-//        self.definesPresentationContext = YES;
+        _searchController.searchBar.delegate = self;
         
+        self.navigationItem.titleView = _searchController.searchBar;
+        self.definesPresentationContext = YES;
+        
+        if (@available(iOS 11, *)) {
+            self.navigationItem.largeTitleDisplayMode = UINavigationItemLargeTitleDisplayModeAutomatic;
+        }
         
     }
     return self;
 }
 
-//- (void)updateSearchResultsForSearchController:(UISearchController *)searchController {
-//    NSLog(@"Now");
-//}
+- (void)updateSearchResultsForSearchController:(UISearchController *)searchController_ {
+    [self searchWithText:searchController_.searchBar.text lengthLimit:2];
+}
+
+- (void)searchBarSearchButtonClicked:(UISearchBar *)searchBar {
+    NSString * string = searchBar.text;
+    [self searchWithText:string lengthLimit:0];
+}
+
+-(void) searchWithText: (NSString *) text lengthLimit: (int) limit {
+    BOOL shouldSearch = [text stringByReplacingOccurrencesOfString:@" " withString:@""].length;
+    
+    if (shouldSearch && text.length > limit) {
+        [self searchWithText:text];
+    }
+}
+
+- (void)didPresentSearchController:(UISearchController *)searchController {
+    searchController.searchBar.showsCancelButton = NO;
+}
+
+- (void)willPresentSearchController:(UISearchController *)searchController {
+    searchController.searchBar.showsCancelButton = NO;
+}
 
 -(void) setExcludedUsers: (NSArray *) excludedUsers {
     _usersToExclude = excludedUsers;
-}
-
--(void) showKeyboardOnLoad: (BOOL) showKeyboard {
-    _showKeyboardOnLoad = showKeyboard;
 }
 
 -(void) setSelectedAction: (void(^)(NSArray * users)) action {
@@ -79,14 +99,18 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    if ([NM.search respondsToSelector:@selector(availableIndexes)]) {
+    self.searchTextField.rightViewMode = UITextFieldViewModeAlways;
+    _searchTextFieldRightView = self.searchTextField.rightView;
+    
+    if ([BChatSDK.search respondsToSelector:@selector(availableIndexes)]) {
         // Get the search terms...
         [self startActivityIndicator];
         
         __weak __typeof__(self) weakSelf = self;
 
-        [NM.search availableIndexes].thenOnMain(^id(NSArray * indexes) {
+        [BChatSDK.search availableIndexes].thenOnMain(^id(NSArray * indexes) {
             __typeof__(self) strongSelf = weakSelf;
+            strongSelf->_searchIndexes = indexes;
             
             NSMutableArray * nonRequiredIndexes = [NSMutableArray new];
             
@@ -96,32 +120,24 @@
                 }
             }
             
-            
-            
-            strongSelf.searchTermButton.hidden = !indexes.count;
-            strongSelf->_searchTermViewController = [[BSearchIndexViewController alloc] initWithIndexes: nonRequiredIndexes withCallback:^(NSArray * index) {
-                [strongSelf.searchTermButton setTitle:index.key forState:UIControlStateNormal];
-                strongSelf->_currentSearchIndex = index;
+            if (indexes.count) {
+                strongSelf.currentSearchIndex = nonRequiredIndexes.firstObject;
+            }
+            [self updateRightBarButtonItem];
+
+            strongSelf.searchTermNavigationController = [BChatSDK.ui searchIndexNavigationControllerWithIndexes:nonRequiredIndexes withCallback:^(NSArray * index) {
+                strongSelf.currentSearchIndex = index;
+                [self updateRightBarButtonItem];
             }];
-            [self stopActivityIndicator];
+            
+            [strongSelf stopActivityIndicator];
             return Nil;
         }, Nil);
     }
     else {
         [self stopActivityIndicator];
-        searchTermButton.hidden = YES;
+        [self updateRightBarButtonItem];
     }
-
-    // Fix for the iPhone X
-    // For some reason, the text view has no border...
-//    if([UIScreen mainScreen].nativeBounds.size.height == 2436) {
-//        self.searchBox.layer.borderColor = [BCoreUtilities colorWithHexString:@"e2e2e2"].CGColor;
-//        self.searchBox.layer.borderWidth = 1;
-//        self.searchBox.layer.cornerRadius = 5;
-//    }
-
-    self.searchBox.keepTopInset.equal = self.navigationController.navigationBar.frame.size.height + [UIApplication sharedApplication].statusBarFrame.size.height + 10 + keepRequired;
-    self.searchBox.placeholder = [NSBundle t:bSearch];
     
     // Add a tap recognizer to dismiss the keyboard
     _tapRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(viewTapped)];
@@ -131,17 +147,12 @@
     _addButton = [[UIBarButtonItem alloc] initWithTitle:[NSBundle t:bAdd] style:UIBarButtonItemStylePlain target:self action:@selector(addButtonPressed)];
     self.navigationItem.rightBarButtonItem = _addButton;
     
-    //[self updateAddressBook];
-    [tableView registerNib:[UINib nibWithNibName:@"BUserCell" bundle:[NSBundle chatUIBundle]] forCellReuseIdentifier:bCellIdentifier];
+    [tableView registerNib:[UINib nibWithNibName:@"BUserCell" bundle:[NSBundle uiBundle]] forCellReuseIdentifier:bCellIdentifier];
     
     self.noUsersFoundLabel.text = [NSBundle t:bNoNewUsersFoundForThisSearch];
     self.noUsersFoundView.hidden = YES;
     
-    [self updateAddButton];
-}
-
--(void) updateAddButton {
-    _addButton.enabled = _selectedUsers.count;
+    [self updateRightBarButtonItem];
 }
 
 -(void) viewWillAppear:(BOOL)animated {
@@ -158,40 +169,69 @@
 
 -(void) viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
-    if (!_users.count && _showKeyboardOnLoad) {
-        [searchBox becomeFirstResponder];
-    }
     
-    _internetConnectionObserver = [[NSNotificationCenter defaultCenter] addObserverForName:kReachabilityChangedNotification object:nil queue:Nil usingBlock:^(NSNotification * notification) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            if (![Reachability reachabilityForInternetConnection].isReachable) {
-                [self dismissViewControllerAnimated:YES completion:nil];
-            }
-        });
+    __weak __typeof__(self) weakSelf = self;
+    _internetConnectionHook = [BHook hook:^(NSDictionary * data) {
+        __typeof__(self) strongSelf = weakSelf;
+        if (!BChatSDK.connectivity.isConnected) {
+            [self dismissViewControllerAnimated:YES completion:nil];
+        }
     }];
-}
+    [BChatSDK.hook addHook:_internetConnectionHook withName:bHookInternetConnectivityChanged];
 
+}
 
 - (void)viewDidDisappear:(BOOL)animated {
     [super viewDidDisappear:animated];
+    
+    [BChatSDK.hook removeHook:_internetConnectionHook withName:bHookInternetConnectivityChanged];
     
     [[NSNotificationCenter defaultCenter] removeObserver:self name:UIKeyboardWillShowNotification object:nil];
     [[NSNotificationCenter defaultCenter] removeObserver:self name:UIKeyboardWillHideNotification object:nil];
 }
 
+-(UITextField *) searchTextField {
+    for (UIView * container in _searchController.searchBar.subviews) {
+        for (UIView * v in container.subviews) {
+            if ([v isKindOfClass:[UITextField class]]) {
+                return (UITextField *) v;
+            }
+        }
+    }
+    return Nil;
+}
+
 -(void) startActivityIndicator {
-    // TODO: make this better i.e. what to do while we're loading the search terms
-    //searchBox.userInteractionEnabled = NO;
-    self.activityView.hidden = NO;
-    [self.activityView startAnimating];
-    self.searchTermButton.hidden = YES;
+    if (_activityIndicator == Nil) {
+        _activityIndicator = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleGray];
+        _activityIndicator.transform = CGAffineTransformMakeScale(1, 1);
+    }
+    [_activityIndicator startAnimating];
+    
+    self.searchTextField.rightView =_activityIndicator;
+    self.searchTextField.rightViewMode = UITextFieldViewModeAlways;
 }
 
 -(void) stopActivityIndicator {
-    //searchBox.userInteractionEnabled = YES;
-    self.activityView.hidden = YES;
-    [self.activityView stopAnimating];
-    self.searchTermButton.hidden = !_currentSearchIndex;
+    self.searchTextField.rightView = _searchTextFieldRightView;
+}
+
+-(void) showSearchTermButton {
+    [self showSearchTermButton:_currentSearchIndex.key];
+}
+
+-(void) showSearchTermButton: (NSString *) text {
+    self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:text style:UIBarButtonItemStylePlain target:self action:@selector(searchTermButtonPressed:)];
+}
+
+-(void) updateRightBarButtonItem {
+    if (_selectedUsers.count || !_searchIndexes.count) {
+        self.navigationItem.rightBarButtonItem = _addButton;
+        _addButton.enabled = _selectedUsers.count;
+    }
+    else {
+        [self showSearchTermButton];
+    }
 }
 
 -(void) backButtonPressed {
@@ -204,10 +244,6 @@
     if (usersSelected != Nil) {
         usersSelected(_selectedUsers);
     }
-}
-
--(void) viewTapped {
-    [searchBox resignFirstResponder];
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
@@ -241,7 +277,7 @@
         [_selectedUsers addObject:user];
     }
     [tableView_ reloadRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationAutomatic];
-    [self updateAddButton];
+    [self updateRightBarButtonItem];
 }
 
 -(void) searchWithText: (NSString *) text {
@@ -253,13 +289,13 @@
 
     __weak __typeof__(self) weakSelf = self;
 
-    [NM.search usersForIndexes:indexes withValue:text limit: 10 userAdded: ^(id<PUser> user) {
+    [BChatSDK.search usersForIndexes:indexes withValue:text limit: 10 userAdded: ^(id<PUser> user) {
         __typeof__(self) strongSelf = weakSelf;
 
         // Make sure we run this on the main thread
         dispatch_async(dispatch_get_main_queue(), ^{
             
-            if (user != NM.currentUser) {
+            if (user != BChatSDK.currentUser) {
                 // Only display a user if they have a name set
             
                 // Check the users entityID to make sure they're not in the exclude list
@@ -271,7 +307,7 @@
                     }
                 }
             }
-            [strongSelf->_users sortUsersInAlphabeticalOrder];
+            [strongSelf->_users sortAlphabetical];
             
             [strongSelf.tableView reloadData];
             
@@ -292,40 +328,28 @@
     });
 }
 
-#pragma TextField delegate
+#pragma Search Delegate
 
-- (BOOL)textField:(UITextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string {
-    
-    // New string
-    NSString * newString = [textField.text stringByReplacingCharactersInRange:range withString:string];
-    
-    BOOL shouldSearch = [newString stringByReplacingOccurrencesOfString:@" " withString:@""].length;
-    
-    if (shouldSearch && newString.length > 2) {
-        [self searchWithText:newString];
-    }
-    
-    return YES;
-}
-
-- (BOOL)textFieldShouldClear:(UITextField *)textField {
+- (void)didDismissSearchController:(UISearchController *)searchController {
+    [self stopActivityIndicator];
     [self clearAndReload];
-    return YES;
 }
 
-- (BOOL)textFieldShouldReturn:(UITextField *)textField {
-    [self searchWithText:textField.text];
-    return NO;
+- (void)searchBar:(UISearchBar *)searchBar textDidChange:(NSString *)searchText {
+    if (!searchText || !searchText.length) {
+        [self clearAndReload];
+    }
 }
 
 -(void) clearAndReload {
     [_users removeAllObjects];
     [_selectedUsers removeAllObjects];
     [tableView reloadData];
+    [self updateRightBarButtonItem];
 }
 
-- (IBAction)searchTermButtonPressed:(id)sender {
-    [self presentViewController:[[UINavigationController alloc] initWithRootViewController:_searchTermViewController]
+- (void)searchTermButtonPressed:(id)sender {
+    [self presentViewController:_searchTermNavigationController
                        animated:YES
                      completion:Nil];
 }

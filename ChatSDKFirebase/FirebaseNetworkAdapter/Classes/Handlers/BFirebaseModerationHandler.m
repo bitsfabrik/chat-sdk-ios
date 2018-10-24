@@ -8,8 +8,7 @@
 
 #import "BFirebaseModerationHandler.h"
 
-#import <ChatSDK/ChatCore.h>
-#import "ChatFirebaseAdapter.h"
+#import <ChatSDKFirebase/FirebaseAdapter.h>
 
 @implementation BFirebaseModerationHandler
 
@@ -17,18 +16,17 @@
 
 // TODO: Should we move these out of the message wrapper?
 - (RXPromise *) flagMessage: (NSString *)messageID {
-    id<PMessage> message = [[BStorageManager sharedManager].a fetchOrCreateEntityWithID:messageID withType:bMessageEntity];
+    id<PMessage> message = [BChatSDK.db fetchOrCreateEntityWithID:messageID withType:bMessageEntity];
     return [[CCMessageWrapper messageWithModel:message] flag];
 }
 
 - (RXPromise *) unflagMessage: (NSString *)messageID {
-    id<PMessage> message = [[BStorageManager sharedManager].a fetchOrCreateEntityWithID:messageID withType:bMessageEntity];
+    id<PMessage> message = [BChatSDK.db fetchOrCreateEntityWithID:messageID withType:bMessageEntity];
     return [[CCMessageWrapper messageWithModel:message] unflag];
 }
 
 - (RXPromise *) deleteMessage: (NSString *)messageID {
-    [self unflagMessage:messageID];
-    id<PMessage> message = [[BStorageManager sharedManager].a fetchOrCreateEntityWithID:messageID withType:bMessageEntity];
+    id<PMessage> message = [BChatSDK.db fetchOrCreateEntityWithID:messageID withType:bMessageEntity];
     return [[CCMessageWrapper messageWithModel:message] delete];
 }
 

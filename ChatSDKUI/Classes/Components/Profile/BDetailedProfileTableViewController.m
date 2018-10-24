@@ -8,8 +8,7 @@
 
 #import "BDetailedProfileTableViewController.h"
 
-#import <ChatSDK/ChatCore.h>
-#import <ChatSDK/ChatUI.h>
+#import <ChatSDK/UI.h>
 
 #define bStatusSection 1
 #define bAddFriendCellTag 1
@@ -55,7 +54,7 @@
 {
     [super viewDidLoad];
     
-    _anonymousProfilePicture = [BChatSDK config].defaultBlankAvatar;
+    _anonymousProfilePicture = BChatSDK.config.defaultBlankAvatar;
     profilePictureButton.layer.cornerRadius = 50;
     
     self.hideSectionsWithHiddenRows = YES;
@@ -70,7 +69,7 @@
         return self.overrideUser;
     }
     else {
-        return NM.currentUser;
+        return BChatSDK.currentUser;
     }
 }
 
@@ -82,7 +81,7 @@
     
     if (overrideUser) {
         self.title = user.name;
-        self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[NSBundle chatUIImageNamed:@"icn_22_chat.png"] style:UIBarButtonItemStyleBordered target:self action:@selector(startChat)];
+        self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithImage:[NSBundle uiImageNamed:@"icn_22_chat.png"] style:UIBarButtonItemStyleBordered target:self action:@selector(startChat)];
         
         self.editPhotoButton.hidden = YES;
         self.profilePictureButton.userInteractionEnabled = NO;
@@ -120,12 +119,12 @@
         return;
     }
 
-    UIImage * countryCodeImage = [NSBundle imageNamed:[user metaStringForKey:bCountry] framework:@"CountryPicker" bundle:@"CountryPicker"];
+    UIImage * countryCodeImage = [NSBundle imageNamed:[user.meta metaStringForKey:bCountry] framework:@"CountryPicker" bundle:@"CountryPicker"];
     [flagImageView setImage:countryCodeImage];
     
-    nameLabel.text = [user metaStringForKey:bName];
+    nameLabel.text = [user.meta metaStringForKey:bName];
     
-    NSString * status = [user metaStringForKey:bDescription];
+    NSString * status = [user.meta metaStringForKey:bDescription];
     if (!status || status.length == 0) {
         status = @"";
     }
@@ -133,12 +132,12 @@
     
     [self cell:statusCell setHidden:!status || ![status stringByReplacingOccurrencesOfString:@" " withString:@""].length];
     
-    NSString * location = [user metaStringForKey:bLocation];
+    NSString * location = [user.meta metaStringForKey:bLocation];
     locationLabel.text = location;
     
     [self cell:locationCell setHidden:!location || !location.length];
     
-    genderButton.selected = [[user metaStringForKey:bGender] isEqualToString:@"F"];
+    genderButton.selected = [[user.meta metaStringForKey:bGender] isEqualToString:@"F"];
     
     // Set the profile picture
     // Does the user already have a profile picture?
@@ -197,13 +196,13 @@
 }
 
 -(void) updateTabBarIcon {
-    BOOL female = [[NM.currentUser metaStringForKey:bGender] isEqualToString:@"F"];
-    self.tabBarItem.image = [NSBundle chatUIImageNamed: female ? @"icn_30_profile_f.png" :  @"icn_30_profile.png"];
-    self.tabBarItem.selectedImage = [NSBundle chatUIImageNamed: female ? @"icn_30_profile_f.png" :  @"icn_30_profile.png"];
+    BOOL female = [[BChatSDK.currentUser.meta metaStringForKey:bGender] isEqualToString:@"F"];
+    self.tabBarItem.image = [NSBundle uiImageNamed: female ? @"icn_30_profile_f.png" :  @"icn_30_profile.png"];
+    self.tabBarItem.selectedImage = [NSBundle uiImageNamed: female ? @"icn_30_profile_f.png" :  @"icn_30_profile.png"];
 }
 
 -(UIImage *) profilePicture {
-    id<PUser> user = NM.currentUser;
+    id<PUser> user = BChatSDK.currentUser;
     return user.imageAsImage;
 }
 
@@ -225,8 +224,8 @@
 }
 
 -(void) startChat {
-    [NM.core createThreadWithUsers:@[self.overrideUser] threadCreated:^(NSError * error, id<PThread> thread) {
-        UIViewController * cvc = [[BInterfaceManager sharedManager].a chatViewControllerWithThread:thread];
+    [BChatSDK.core createThreadWithUsers:@[self.overrideUser] threadCreated:^(NSError * error, id<PThread> thread) {
+        UIViewController * cvc = [BChatSDK.ui chatViewControllerWithThread:thread];
         [self.navigationController pushViewController:cvc animated:YES];
     }];
 }
@@ -240,10 +239,10 @@
     // Set the user image
     
     // Update the user
-    id<PUser> user = NM.currentUser;
+    id<PUser> user = BChatSDK.currentUser;
     [user setImage:UIImagePNGRepresentation(image)];
     
-    [NM.core pushUser];
+    [BChatSDK.core pushUser];
     
     [picker dismissViewControllerAnimated:YES completion:Nil];
 }

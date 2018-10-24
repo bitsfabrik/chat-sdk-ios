@@ -6,17 +6,17 @@
 //
 
 #import "BDefaultUIModule.h"
-#import <ChatSDK/ChatCore.h>
-#import <ChatSDK/ChatUI.h>
+#import <ChatSDK/Core.h>
+#import <ChatSDK/UI.h>
 
 @implementation BDefaultUIModule
 
 -(void) activate {
-    [BInterfaceManager sharedManager].a = [[BDefaultInterfaceAdapter alloc] init];
+    BChatSDK.shared.interfaceManager = [[BDefaultInterfaceAdapter alloc] init];
     // Set the login screen
-    NM.auth.challengeViewController = [[BLoginViewController alloc] initWithNibName:Nil bundle:Nil];
-    if(![BChatSDK config].defaultBlankAvatar) {
-        [BChatSDK config].defaultBlankAvatar = [NSBundle imageNamed:bDefaultProfileImage framework:@"ChatSDK" bundle:@"ChatUI"];
+    BChatSDK.auth.challengeViewController = [[BLoginViewController alloc] initWithNibName:Nil bundle:Nil];
+    if(!BChatSDK.config.defaultBlankAvatar) {
+        BChatSDK.config.defaultBlankAvatar = [NSBundle imageNamed:bDefaultProfileImage bundle:bUIBundleName];
     }
     
 }

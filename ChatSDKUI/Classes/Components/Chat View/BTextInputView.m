@@ -7,7 +7,7 @@
 //
 
 #import "BTextInputView.h"
-#import <ChatSDK/ChatCore.h>
+#import <ChatSDK/Core.h>
 
 #define bMargin 8.0
 
@@ -60,8 +60,8 @@
         _sendButton = [UIButton buttonWithType:UIButtonTypeRoundedRect];
         [self addSubview: _sendButton];
         
-        [_optionsButton setImage:[NSBundle chatUIImageNamed:@"icn_24_options.png"] forState:UIControlStateNormal];
-        [_optionsButton setImage:[NSBundle chatUIImageNamed:@"icn_24_keyboard.png"] forState:UIControlStateSelected];
+        [_optionsButton setImage:[NSBundle uiImageNamed:@"icn_24_options.png"] forState:UIControlStateNormal];
+        [_optionsButton setImage:[NSBundle uiImageNamed:@"icn_24_keyboard.png"] forState:UIControlStateSelected];
         
         [_optionsButton addTarget:self action:@selector(optionsButtonPressed) forControlEvents:UIControlEventTouchUpInside];
         
@@ -96,7 +96,7 @@
         _optionsButton.keepHeight.equal = 24;
         
         // If the user has no chat options available then remove the chat option button width
-        _optionsButton.keepWidth.equal = [BInterfaceManager sharedManager].a.chatOptions.count ? 24 : 0;
+        _optionsButton.keepWidth.equal = BChatSDK.ui.chatOptions.count ? 24 : 0;
         
         _optionsButton.translatesAutoresizingMaskIntoConstraints = NO;
         
@@ -128,8 +128,12 @@
         
         [self setFont:[UIFont systemFontOfSize:bFontSize]];
         
-        // Check this
-        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(updateInterfaceForReachabilityStateChange) name:kReachabilityChangedNotification object:Nil];
+        __weak __typeof__(self) weakSelf = self;
+        _internetConnectionHook = [BHook hook:^(NSDictionary * data) {
+            __typeof__(self) strongSelf = weakSelf;
+            [strongSelf updateInterfaceForReachabilityStateChange];
+        }];
+        [BChatSDK.hook addHook:_internetConnectionHook withName:bHookInternetConnectivityChanged];
         
         [self updateInterfaceForReachabilityStateChange];
         
@@ -150,7 +154,7 @@
 }
 
 -(void) updateInterfaceForReachabilityStateChange {
-    BOOL connected = [Reachability reachabilityForInternetConnection].isReachable;
+    BOOL connected = BChatSDK.connectivity.isConnected;
     _sendButton.enabled = connected;
     _optionsButton.enabled = connected;
 }
@@ -164,7 +168,7 @@
     _micButtonEnabled = enabled;
     if (enabled) {
         [_sendButton setTitle:Nil forState:UIControlStateNormal];
-        [_sendButton setImage:[NSBundle chatUIImageNamed: @"icn_24_mic.png"]
+        [_sendButton setImage:[NSBundle uiImageNamed: @"icn_24_mic.png"]
                      forState:UIControlStateNormal];
     }
     else {

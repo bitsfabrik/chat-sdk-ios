@@ -11,8 +11,8 @@
 
 #import "BContactsViewController.h"
 
-#import <ChatSDK/ChatCore.h>
-#import <ChatSDK/ChatUI.h>
+#import <ChatSDK/Core.h>
+#import <ChatSDK/UI.h>
 
 #define bCellIdentifier @"bCellIdentifier"
 
@@ -27,14 +27,13 @@
 
 -(instancetype) init
 {
-    self = [super initWithNibName:@"BContactsViewController" bundle:[NSBundle chatUIBundle]];
+    self = [super initWithNibName:@"BContactsViewController" bundle:[NSBundle uiBundle]];
     
     if (self) {
         self.title = [NSBundle t:bContacts];
-        self.tabBarItem.image = [NSBundle chatUIImageNamed: @"icn_30_contact.png"];
+        self.tabBarItem.image = [NSBundle uiImageNamed: @"icn_30_contact.png"];
         _contacts = [NSMutableArray new];
         _notificationList = [BNotificationObserverList new];
-        _initialTableYOffset = -1;
     }
     return self;
 }
@@ -55,13 +54,13 @@
         searchController.searchBar.scopeButtonTitles = @[];
         searchController.searchBar.delegate = self;
         
-        self.tableView.tableHeaderView = searchController.searchBar;
+        self.navigationItem.searchController = searchController;
         self.definesPresentationContext = YES;
     }
     
     self.extendedLayoutIncludesOpaqueBars = YES;
     
-    [tableView registerNib:[UINib nibWithNibName:@"BUserCell" bundle:[NSBundle chatUIBundle]] forCellReuseIdentifier:bCellIdentifier];
+    [tableView registerNib:[UINib nibWithNibName:@"BUserCell" bundle:[NSBundle uiBundle]] forCellReuseIdentifier:bCellIdentifier];
 }
 
 -(void) viewWillAppear:(BOOL)animated {
@@ -73,48 +72,30 @@
 // This sets up the searchController properly
 -(void)viewDidLayoutSubviews {
     [super viewDidLayoutSubviews];
-    
-    if(_initialTableYOffset == -1) {
-        _initialTableYOffset = tableView.contentOffset.y;
-    }
-    
-    // This code fixes a small issue when the search view is shown for the first time
-    if (_contacts.count) {
-        
-        UISearchBar * searchBar = [searchController searchBar];
-        CGSize size = searchBar.intrinsicContentSize;
-        
-        [self.tableView setContentOffset:CGPointMake(0, _initialTableYOffset + size.height) animated:NO];
-
-    }
-    else {
-        [self.tableView setContentOffset:CGPointMake(0, self.searchController.searchBar.fh) animated:NO];
-    }
-//    [tableView scrollToRowAtIndexPath:[NSIndexPath indexPathForItem:0 inSection:0] atScrollPosition:UITableViewScrollPositionTop animated:NO];
-
 }
 
 - (void)viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
-    
+    __weak __typeof__(self) weakSelf = self;
+
     [self updateButtonStatusForInternetConnection];
-    
+
     [_notificationList add:[[NSNotificationCenter defaultCenter] addObserverForName:bNotificationUserUpdated
                                                                              object:Nil
                                                                               queue:Nil
                                                                          usingBlock:^(NSNotification * notification) {
                                                                              dispatch_async(dispatch_get_main_queue(), ^{
-                                                                                 [self reloadData];
+                                                                                 __typeof__(self) strongSelf = weakSelf;
+                                                                                 [strongSelf reloadData];
                                                                              });
                                                                          }]];
 
-    
-    [_notificationList add:[[NSNotificationCenter defaultCenter] addObserverForName:kReachabilityChangedNotification object:nil queue:Nil usingBlock:^(NSNotification * notification) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self updateButtonStatusForInternetConnection];
-        });
-    }]];
-    
+    _internetConnectionHook = [BHook hook:^(NSDictionary * data) {
+        __typeof__(self) strongSelf = weakSelf;
+        [self updateButtonStatusForInternetConnection];
+    }];
+    [BChatSDK.hook addHook:_internetConnectionHook withName:bHookInternetConnectivityChanged];
+
     // We need to call this to ensure the search controller is correctly formatted when the view is shown
     [self viewDidLayoutSubviews];
 }
@@ -123,7 +104,8 @@
     [super viewDidDisappear:animated];
     
     [_notificationList dispose];
-    
+    [BChatSDK.hook removeHook:_internetConnectionHook withName:bHookInternetConnectivityChanged];
+
     // This removes the active search once a user goes back to this page
     searchController.active = NO;
 }
@@ -132,7 +114,7 @@
     
     __weak __typeof__(self) weakSelf = self;
 
-    NSDictionary * searchControllerNamesForType = [BInterfaceManager sharedManager].a.additionalSearchControllerNames;
+    NSDictionary * searchControllerNamesForType = BChatSDK.ui.additionalSearchControllerNames;
     
     if(searchControllerNamesForType.allKeys.count == 0) {
         // Just use name search
@@ -177,11 +159,11 @@
     __weak BContactsViewController * weakSelf = self;
     
     NSMutableArray * excludedUsers = [NSMutableArray new];
-    for(id<PUserConnection> connection in NM.contact.contacts) {
+    for(id<PUserConnection> connection in BChatSDK.contact.contacts) {
         [excludedUsers addObject:connection.user];
     }
     
-    UIViewController * vc = [[BInterfaceManager sharedManager].a searchViewControllerWithType:type
+    UIViewController * vc = [BChatSDK.ui searchViewControllerWithType:type
                                                                                excludingUsers:excludedUsers
                                                                                    usersAdded:^(NSArray * users) {
                                                                                    [weakSelf addUsers:users];
@@ -199,8 +181,8 @@
         for (id<PUser> user in users) {
             
             // Add observers to the user just added
-            [NM.core observeUser:user.entityID];
-            [NM.contact addContact:user withType:bUserConnectionTypeContact];
+            [BChatSDK.core observeUser:user.entityID];
+            [BChatSDK.contact addContact:user withType:bUserConnectionTypeContact];
         }
     }
     
@@ -239,7 +221,7 @@
     id<PUserConnection> connection = _contacts[indexPath.row];
     
     // Open the users profile
-    UIViewController * profileView = [[BInterfaceManager  sharedManager].a profileViewControllerWithUser:connection.user];
+    UIViewController * profileView = [BChatSDK.ui profileViewControllerWithUser:connection.user];
     profileView.hidesBottomBarWhenPushed = YES;
     
     [self.navigationController pushViewController:profileView animated:YES];
@@ -248,25 +230,15 @@
 
 -(void) reloadData {
     
-    NSArray * allContacts = [NM.currentUser connectionsWithType:bUserConnectionTypeContact];
+    NSArray * allContacts = [BChatSDK.currentUser connectionsWithType:bUserConnectionTypeContact];
     
     [_contacts removeAllObjects];
     [_contacts addObjectsFromArray:allContacts];
-
-    [self sortContacts];
+    [_contacts sortOnlineThenAlphabetical];
     
     [tableView reloadData];
 }
 
--(void) sortContacts {
-    [_contacts sortUsingComparator:^NSComparisonResult(id<PUserConnection> c1, id<PUserConnection> c2) {
-        // First compare the online / offline
-        if (c1.user.online.boolValue != c2.user.online.boolValue) {
-            return !c1.user.online.boolValue ? NSOrderedDescending : NSOrderedAscending;
-        }
-        return NSOrderedSame;
-    }];
-}
 
 #pragma pulldownSearch
 
@@ -274,7 +246,7 @@
     
     NSString * searchString = searchController_.searchBar.text.lowercaseString;
     
-    NSArray * allContacts = [NM.contact connectionsWithType:bUserConnectionTypeContact];
+    NSArray * allContacts = [BChatSDK.contact connectionsWithType:bUserConnectionTypeContact];
     
     [_contacts removeAllObjects];
     
@@ -285,14 +257,14 @@
         }
     }
     
-    [self sortContacts];
+    [_contacts sortOnlineThenAlphabetical];
     
     [tableView reloadData];
 }
 
 - (void)updateButtonStatusForInternetConnection {
     
-    BOOL connected = [Reachability reachabilityForInternetConnection].isReachable;
+    BOOL connected = BChatSDK.connectivity.isConnected;
     self.navigationItem.rightBarButtonItem.enabled = connected;
 }
 

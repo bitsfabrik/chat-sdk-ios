@@ -8,13 +8,13 @@
 
 #import "BBaseImageMessageHandler.h"
 
-#import <ChatSDK/ChatCore.h>
+#import <ChatSDK/Core.h>
 
 @implementation BBaseImageMessageHandler
 
 -(RXPromise *) sendMessageWithImage:(UIImage *)image withThreadEntityID:(NSString *)threadID {
     
-    [[BStorageManager sharedManager].a beginUndoGroup];
+    [BChatSDK.db beginUndoGroup];
     
     // Resize the image to make a thumbnail
     CGSize newSize;
@@ -28,18 +28,18 @@
     }
     UIImage * thumbnail = [image resizedImage:newSize interpolationQuality:kCGInterpolationHigh];
     
-    id<PMessage> message = [[BStorageManager sharedManager].a createEntity:bMessageEntity];
+    id<PMessage> message = [BChatSDK.db createMessageEntity];
     // Generate a temporary ID
     message.entityID = [BCoreUtilities getUUID];
     
+    
+    [message setTextString: bNullString];
     message.type = @(bMessageTypeImage);
-    
-    [message setTextAsDictionary:@{bMessageTextKey: bNullString}];
-    
-    id<PThread> thread = [[BStorageManager sharedManager].a fetchEntityWithID:threadID withType:bThreadEntity];
+
+    id<PThread> thread = [BChatSDK.db fetchEntityWithID:threadID withType:bThreadEntity];
 
     message.date = [NSDate date];
-    message.userModel = NM.currentUser;
+    message.userModel = BChatSDK.currentUser;
     message.delivered = @NO;
     message.read = @YES;
     message.flagged = @NO;
@@ -47,20 +47,20 @@
 
     [thread addMessage: message];
 
-    return [NM.upload uploadImage:image thumbnail:thumbnail].thenOnMain(^id(NSDictionary * urls) {
+    return [BChatSDK.upload uploadImage:image thumbnail:thumbnail].thenOnMain(^id(NSDictionary * urls) {
         
         NSString * imageURL = urls[bImagePath];
         NSString * thumbnailURL = urls[bThumbnailPath];
 
         NSString * messageText = [NSString stringWithFormat:@"%@,%@,W%.0f&H%.0f", imageURL, thumbnailURL, image.size.width, image.size.height];
 
-        [message setTextAsDictionary:@{bMessageTextKey: messageText,
-                                       bMessageImageURL: imageURL ? imageURL : @"",
-                                       bMessageThumbnailURL: thumbnailURL ? thumbnailURL : @"",
-                                       bMessageImageWidth: @(image.size.width),
-                                       bMessageImageHeight: @(image.size.height)}];
+        [message setJson:@{bMessageTextKey: messageText,
+                           bMessageImageURL: imageURL ? imageURL : @"",
+                           bMessageThumbnailURL: thumbnailURL ? thumbnailURL : @"",
+                           bMessageImageWidth: @(image.size.width),
+                           bMessageImageHeight: @(image.size.height)}];
         
-        return [NM.core sendMessage:message].thenOnMain(^id(id result) {
+        return [BChatSDK.core sendMessage:message].thenOnMain(^id(id result) {
             message.delivered = @YES;
             return result;
         }, Nil);

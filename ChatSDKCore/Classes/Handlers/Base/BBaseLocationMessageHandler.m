@@ -10,22 +10,22 @@
 
 #import <MapKit/MapKit.h>
 
-#import <ChatSDK/ChatCore.h>
+#import <ChatSDK/Core.h>
 
 @implementation BBaseLocationMessageHandler
 
 -(RXPromise *) sendMessageWithLocation:(CLLocation *)location withThreadEntityID:(NSString *)threadID {
     
-    [[BStorageManager sharedManager].a beginUndoGroup];
+    [BChatSDK.db beginUndoGroup];
     
-    id<PMessage> message = [[BStorageManager sharedManager].a createEntity:bMessageEntity];
+    id<PMessage> message = [BChatSDK.db createMessageEntity];
     
     message.type = @(bMessageTypeLocation);
     
-    id<PThread> thread = [[BStorageManager sharedManager].a fetchEntityWithID:threadID withType:bThreadEntity];
+    id<PThread> thread = [BChatSDK.db fetchEntityWithID:threadID withType:bThreadEntity];
 
     message.date = [NSDate date];
-    message.userModel = NM.currentUser;
+    message.userModel = BChatSDK.currentUser;
     message.delivered = @NO;
     message.read = @YES;
     message.flagged = @NO;
@@ -35,11 +35,11 @@
     // TODO: Get rid of this
     NSString * messageText = [NSString stringWithFormat:@"%f,%f",location.coordinate.latitude,location.coordinate.longitude];
 
-    [message setTextAsDictionary:@{bMessageTextKey: messageText,
-                                   bMessageLongitude: @(location.coordinate.longitude),
-                                   bMessageLatitude: @(location.coordinate.latitude)}];
+    [message setJson:@{bMessageTextKey: messageText,
+                       bMessageLongitude: @(location.coordinate.longitude),
+                       bMessageLatitude: @(location.coordinate.latitude)}];
     
-    return [NM.core sendMessage:message].thenOnMain(^id(id result) {
+    return [BChatSDK.core sendMessage:message].thenOnMain(^id(id result) {
         message.delivered = @YES;
         return result;
     }, Nil);;
@@ -122,7 +122,7 @@
 //        UIImage * thumbnail = images[bThumbnailPath];
 //
 //        // Upload the images to Parse
-//        return [NM.upload uploadImage:image thumbnail:thumbnail].thenOnMain(^id(NSDictionary * urls) {
+//        return [BChatSDK.upload uploadImage:image thumbnail:thumbnail].thenOnMain(^id(NSDictionary * urls) {
 //
 //            NSString * imageURL = urls[bImagePath];
 //            NSString * thumbnailURL = urls[bThumbnailPath];
@@ -138,7 +138,7 @@
 //                                           bMessageImageHeight: @(image.size.height)}];
 //
 //
-//            return [NM.core sendMessage:message].thenOnMain(^id(id result) {
+//            return [BChatSDK.core sendMessage:message].thenOnMain(^id(id result) {
 //                message.delivered = @YES;
 //                return result;
 //            }, Nil);

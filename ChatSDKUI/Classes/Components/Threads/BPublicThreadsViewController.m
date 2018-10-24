@@ -8,8 +8,8 @@
 
 #import "BPublicThreadsViewController.h"
 
-#import <ChatSDK/ChatCore.h>
-#import <ChatSDK/ChatUI.h>
+#import <ChatSDK/Core.h>
+#import <ChatSDK/UI.h>
 
 @interface BPublicThreadsViewController ()
 
@@ -19,11 +19,11 @@
 
 -(instancetype) init
 {
-    self = [super initWithNibName:Nil bundle:[NSBundle chatUIBundle]];
+    self = [super initWithNibName:Nil bundle:[NSBundle uiBundle]];
     if (self) {
  
         self.title = [NSBundle t:bChatRooms];
-        self.tabBarItem.image = [NSBundle chatUIImageNamed: @"icn_30_public.png"];
+        self.tabBarItem.image = [NSBundle uiImageNamed: @"icn_30_public.png"];
 
     }
     return self;
@@ -33,10 +33,10 @@
     
     [super viewDidLoad];
     
-    _slideToDeleteDisabled = ![BChatSDK config].allowPublicThreadDeletion;
+    _slideToDeleteDisabled = !BChatSDK.config.allowPublicThreadDeletion;
     
     // Add new group button
-    if([BChatSDK shared].configuration.allowUsersToCreatePublicChats) {
+    if(BChatSDK.shared.configuration.allowUsersToCreatePublicChats) {
         self.navigationItem.rightBarButtonItem =  [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd
                                                                                                 target:self
                                                                                                 action:@selector(createThread)];
@@ -61,7 +61,7 @@
 - (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex {
     
     // Don't create a thread unless connected to the internet
-    if ([Reachability reachabilityForInternetConnection].isReachable) {
+    if (BChatSDK.connectivity.isConnected) {
         
         if (buttonIndex) {
             
@@ -71,7 +71,7 @@
             __weak __typeof__(self) weakSelf = self;
 
             NSString * name = [alertView textFieldAtIndex:0].text;
-            [NM.publicThread createPublicThreadWithName:name].thenOnMain(^id(id<PThread> thread) {
+            [BChatSDK.publicThread createPublicThreadWithName:name].thenOnMain(^id(id<PThread> thread) {
                 __typeof__(self) strongSelf = self;
                 [strongSelf pushChatViewControllerWithThread:thread];
                 [MBProgressHUD hideHUDForView:strongSelf.view animated:YES];
@@ -88,7 +88,7 @@
 
 -(void) reloadData {
     [_threads removeAllObjects];
-    [_threads addObjectsFromArray:[NM.core threadsWithType:bThreadTypePublicGroup]];
+    [_threads addObjectsFromArray:[BChatSDK.core threadsWithType:bThreadTypePublicGroup]];
     [super reloadData];
 }
 

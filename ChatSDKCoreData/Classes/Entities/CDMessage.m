@@ -8,8 +8,8 @@
 
 #import "CDMessage.h"
 
-#import <ChatSDK/ChatCoreData.h>
-#import <ChatSDK/ChatCore.h>
+#import <ChatSDK/CoreData.h>
+#import <ChatSDK/Core.h>
 
 @implementation CDMessage
 
@@ -43,7 +43,12 @@
     if (!url) {
         // Split up the message text then return the url of the thumbnail
         NSArray * myArray = [self.textString componentsSeparatedByString:@","];
-        url = myArray[0];
+        if (myArray.count > 0) {
+            url = myArray[0];
+        }
+        else {
+            return Nil;
+        }
     }
     
     return [NSURL URLWithString:url];
@@ -56,7 +61,12 @@
     if (!url) {
         // Split up the message text then return the url of the thumbnail
         NSArray * myArray = [self.textString componentsSeparatedByString:@","];
-        url = myArray[1];
+        if (myArray.count > 1) {
+            url = myArray[1];
+        }
+        else {
+            return Nil;
+        }
     }
     return [NSURL URLWithString:url];
 }
@@ -121,37 +131,29 @@
         return self.meta;
     }
     else {
-        return self.textAsDictionary;
+        return self.json;
     }
 }
 
 // TODO: Depricated - remove this
 -(NSError *) setTextAsDictionary: (NSDictionary *) dict {
-    self.json = dict;
-    
-    // Needed to support API 2
-    NSError * error;
-    NSData * jsonData = [NSJSONSerialization  dataWithJSONObject:dict options:0 error:&error];
-    NSString * myString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-
-    self.text = myString;
-    return error;
-    
+    [self setJson:dict];
+    return Nil;
 }
 
 // TODO: Depricated - remove this
--(NSDictionary *) textAsDictionary {
-    if(!self.json) {
-        NSData *data =[self.text dataUsingEncoding:NSUTF8StringEncoding];
-        NSDictionary * response;
-        NSError * error;
-        if(data!=nil){
-            response = (NSDictionary *)[NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers error:&error];
-        }
-        self.json = response;
-    }
-    return self.json;
-}
+//-(NSDictionary *) textAsDictionary {
+//    if(!self.json) {
+//        NSData *data =[self.text dataUsingEncoding:NSUTF8StringEncoding];
+//        NSDictionary * response;
+//        NSError * error;
+//        if(data!=nil){
+//            response = (NSDictionary *)[NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers error:&error];
+//        }
+//        self.json = response;
+//    }
+//    return self.json;
+//}
 
 -(NSString *) color {
     return self.user.messageColor;
@@ -169,11 +171,11 @@
 }
 
 -(NSString *) textString {
-    return self.textAsDictionary[bMessageTextKey];
+    return self.json[bMessageTextKey];
 }
 
 -(void) setTextString: (NSString *) text {
-    [self setTextAsDictionary:@{bMessageTextKey: text ? text : @""}];
+    [self setJson:@{bMessageTextKey: text ? text : @""}];
 }
 
 // This helps us know if we want to show it in the thread
@@ -204,14 +206,14 @@
     NSDictionary * status = self.status;
     if(status && uid) {
         NSDictionary * userStatus = status[uid];
-        return [userStatus[b_Status] intValue];
+        return [userStatus[bStatus] intValue];
     }
     return bMessageReadStatusNone;
 }
 
 -(void) setReadStatus: (bMessageReadStatus) status_ forUserID: (NSString *) uid {
     NSMutableDictionary * mutableStatus = [NSMutableDictionary dictionaryWithDictionary:self.status];
-    mutableStatus[uid] = @{b_Status: @(status_)};
+    mutableStatus[uid] = @{bStatus: @(status_)};
     [self setReadStatus:mutableStatus];
 }
 
@@ -224,8 +226,8 @@
     BOOL allDelivered = YES;
     BOOL allRead = YES;
     for (NSDictionary * userStatus in status.allValues) {
-        //NSString * date = userStatus[b_Date];
-        NSNumber * sts = userStatus[b_Status];
+        //NSString * date = userStatus[bDate];
+        NSNumber * sts = userStatus[bStatus];
         
         bMessageReadStatus s = sts.intValue;
         allDelivered = bMessageReadStatusDelivered <= s && allDelivered;
@@ -242,32 +244,24 @@
     }
 }
 
--(CDMessage *) copy {
-    CDMessage * message = [[BStorageManager sharedManager].a createEntity:bMessageEntity];
-    message.entityID = [self.entityID copy];
-    message.date = [self.date copy];
-    message.placeholder = [self.placeholder copy];
-    message.read = [self.read copy];
-    message.resource = [self.resource copy];
-    message.resourcePath = [self.resourcePath copy];
-    message.text = [self.text copy];
-    message.type = [self.type copy];
-    message.thread = self.thread;
-    message.user = self.user;
-    message.status = [self.status copy];
-    message.meta = [self.meta copy];
-    return message;
-}
-
--(void) setMetaValue: (id) value forKey: (NSString *) key {
-    NSMutableDictionary * dict = [NSMutableDictionary dictionaryWithDictionary:self.meta];
-    dict[key] = value;
-    self.meta = dict;
-}
-
--(id) metaValueForKey: (NSString *) key {
-    return self.meta[key];
-}
+//-(CDMessage *) copy {
+//    CDMessage * message = [BChatSDK.db createMessageEntity];
+//    message.entityID = [self.entityID copy];
+//    message.date = [self.date copy];
+//    message.placeholder = [self.placeholder copy];
+//    message.read = [self.read copy];
+//    message.resource = [self.resource copy];
+//    message.resourcePath = [self.resourcePath copy];
+//    message.text = [self.text copy];
+//    message.type = [self.type copy];
+//    message.thread = self.thread;
+//    message.user = self.user;
+//    message.status = [self.status copy];
+//    message.meta = [self.meta copy];
+//    message.json = [self.json copy];
+//    
+//    return message;
+//}
 
 -(BOOL) senderIsMe {
     
@@ -316,6 +310,10 @@
     BOOL isFirst = !self.lastMessage || self.lastMessage.senderIsMe != self.senderIsMe;
     BOOL isLast = !self.nextMessage || self.nextMessage.senderIsMe != self.senderIsMe;
     
+    // Also check if we are the first or last message of a day
+    isFirst = isFirst || [self.date isNextDay: self.lastMessage.date];
+    isLast = isLast || [self.date isPreviousDay:self.nextMessage.date];
+    
     int position = 0;
     if (isFirst) {
         position = position | bMessagePosFirst;
@@ -339,6 +337,17 @@
         [self updateOptimizationProperties];
     }
     return self.nextMessage;
+}
+
+-(void) updateMeta: (NSDictionary *) dict {
+    if (!self.meta) {
+        self.meta = @{};
+    }
+    self.meta = [self.meta updateMetaDict:dict];
+}
+
+-(void) setMetaValue: (id) value forKey: (NSString *) key {
+    [self updateMeta:@{key: value ? value : @""}];
 }
 
 

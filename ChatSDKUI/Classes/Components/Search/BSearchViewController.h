@@ -11,8 +11,9 @@
 
 @class MBProgressHUD;
 @class BSearchIndexViewController;
+@class BHook;
 
-@interface BSearchViewController : UIViewController <UITableViewDataSource, UITableViewDelegate, UITextFieldDelegate, PSearchViewController /* ,UISearchBarDelegate, UISearchControllerDelegate, UISearchResultsUpdating */> {
+@interface BSearchViewController : UIViewController <UITableViewDataSource, UITableViewDelegate, PSearchViewController, UISearchBarDelegate, UISearchControllerDelegate, UISearchResultsUpdating, UISearchBarDelegate> {
     
     NSMutableArray * _users;
     NSMutableArray * _selectedUsers;
@@ -21,27 +22,32 @@
     NSArray * _usersToExclude;
     
     id _internetConnectionObserver;
-    BSearchIndexViewController * _searchTermViewController;
+    UINavigationController * _searchTermNavigationController;
     NSArray * _currentSearchIndex;
-    BOOL _showKeyboardOnLoad;
     
     UIBarButtonItem * _addButton;
-//    UISearchController * _searchController;
+    UISearchController * _searchController;
+    
+    UIActivityIndicatorView * _activityIndicator;
+    UIView * _searchTextFieldRightView;
+    
+    NSArray * _searchIndexes;
+    BHook * _internetConnectionHook;
+
 }
 
 @property (weak, nonatomic) IBOutlet UITableView *tableView;
 @property (nonatomic, readwrite) NSArray * selectedUsers;
 
-@property (weak, nonatomic) IBOutlet UITextField *searchBox;
+@property (nonatomic, readwrite) UINavigationController * searchTermNavigationController;
+@property (nonatomic, readwrite) NSArray * currentSearchIndex;
+
 @property (nonatomic, readwrite, copy) void(^usersSelected)(NSArray * users);
-@property (weak, nonatomic) IBOutlet UIButton *searchTermButton;
-@property (weak, nonatomic) IBOutlet UIActivityIndicatorView *activityView;
 
 @property (weak, nonatomic) IBOutlet UILabel *noUsersFoundLabel;
 @property (weak, nonatomic) IBOutlet UIView *noUsersFoundView;
 
 @property (nonatomic, readwrite) UIBarButtonItem * addButton;
-
 
 -(void) addButtonPressed;
 -(void) clearAndReload;

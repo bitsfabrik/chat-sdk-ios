@@ -8,9 +8,7 @@
 
 #import "BFirebaseCoreHandler.h"
 
-#import <ChatSDK/ChatCore.h>
-#import "ChatFirebaseAdapter.h"
-
+#import <ChatSDKFirebase/FirebaseAdapter.h>
 
 @implementation BFirebaseCoreHandler
 
@@ -50,7 +48,7 @@
 }
 
 -(void)observeUser: (NSString *)entityID {
-    id<PUser> contactModel = [[BStorageManager sharedManager].a fetchOrCreateEntityWithID:entityID withType:bUserEntity];
+    id<PUser> contactModel = [BChatSDK.db fetchOrCreateEntityWithID:entityID withType:bUserEntity];
     [[CCUserWrapper userWithModel:contactModel] metaOn];
     [[CCUserWrapper userWithModel:contactModel] onlineOn];
 }
@@ -75,7 +73,7 @@
             return [self addUsers:threadModel.users.allObjects toThread:threadModel];
             
         },^id(NSError * error) {
-            //[[BStorageManager sharedManager].a undo];
+            //[BChatSDK.db undo];
             
             if (threadCreated != Nil) {
                 threadCreated(error, Nil);
@@ -139,9 +137,15 @@
 
 -(RXPromise *) sendMessage: (id<PMessage>) messageModel {
     
+    if(BChatSDK.encryption) {
+        [BChatSDK.encryption encryptMessage:messageModel];
+    }
+
+    // Send a push notification for the message
+    [BChatSDK.push pushForMessage:messageModel];
+
     // Create the new CCMessage wrapper
     return [[CCMessageWrapper messageWithModel:messageModel] send].thenOnMain(^id(id success) {
-        [NM.push pushForMessage:messageModel];
         return success;
     }, Nil);
     

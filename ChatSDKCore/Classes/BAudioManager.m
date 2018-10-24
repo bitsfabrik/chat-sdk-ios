@@ -8,6 +8,8 @@
 
 #import "BAudioManager.h"
 
+#import <ChatSDK/Core.h>
+
 @implementation BAudioManager
 
 static BAudioManager * manager;
@@ -96,6 +98,11 @@ static BAudioManager * manager;
             UInt32 audioRouteOverride = kAudioSessionOverrideAudioRoute_Speaker;
             AudioSessionSetProperty (kAudioSessionProperty_OverrideAudioRoute, sizeof (audioRouteOverride), &audioRouteOverride);
         }
+        
+        // Make sure the audio plays even if we're in silent mode
+        [[AVAudioSession sharedInstance]
+         setCategory: AVAudioSessionCategoryPlayback
+         error: nil];
         
         // Subscribe to the AVPlayerItem's DidPlayToEndTime notification.
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(didFinishPlaying:) name:AVPlayerItemDidPlayToEndTimeNotification object:item];

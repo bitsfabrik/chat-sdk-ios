@@ -8,12 +8,9 @@
 
 #import "Firebase+Paths.h"
 
-#import "ChatFirebaseAdapter.h"
-
-#import <ChatSDK/BKeys.h>
+#import <ChatSDKFirebase/FirebaseAdapter.h>
 
 @implementation FIRDatabaseReference (Paths)
-
 
 +(FIRDatabaseReference *) firebaseRef {
     return [[[FIRDatabase database] reference] c: BChatSDK.config.rootPath];
@@ -36,7 +33,7 @@
 }
 
 +(FIRDatabaseReference *) userMetaRef: (NSString *) firebaseID {
-    return [[[self usersRef] child:firebaseID] child:bMetaDataPath];
+    return [[[self usersRef] child:firebaseID] child:bMetaPath];
 }
 
 +(FIRDatabaseReference *) userThreadsRef: (NSString *) firebaseID {
@@ -89,7 +86,7 @@
 }
 
 +(FIRDatabaseReference *) threadMetaRef: (NSString *) firebaseID {
-    return [[self threadRef:firebaseID] child:bMetaDataPath];
+    return [[self threadRef:firebaseID] child:bMetaPath];
 }
 
 #pragma Indexes

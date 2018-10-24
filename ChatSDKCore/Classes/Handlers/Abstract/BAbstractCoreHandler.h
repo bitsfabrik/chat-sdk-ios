@@ -12,8 +12,10 @@
 
 @interface BAbstractCoreHandler : NSObject<PCoreHandler> {
     id<PUser> _currentUser;
+    NSString * _currentUserEntityID;
 }
 
 -(id<PThread>) createThreadWithUsers: (NSArray *) users name: (NSString *) name;
+-(RXPromise *) prepareSendMessage: (id<PMessage>) messageModel;
 
 @end

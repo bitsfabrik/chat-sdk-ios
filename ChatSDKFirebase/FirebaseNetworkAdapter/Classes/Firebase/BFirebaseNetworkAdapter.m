@@ -8,16 +8,15 @@
 
 #import "BFirebaseNetworkAdapter.h"
 
-#import <ChatSDK/ChatCore.h>
-#import "ChatFirebaseAdapter.h"
+#import <ChatSDKFirebase/FirebaseAdapter.h>
 
 @implementation BFirebaseNetworkAdapter
 
 -(id) init {
     if((self = [super init])) {
         
-        if ([BChatSDK config].firebaseShouldConfigureAutomatically) {
-            NSString * plist = [BChatSDK config].firebaseGoogleServicesPlistName;
+        if (BChatSDK.config.firebaseShouldConfigureAutomatically) {
+            NSString * plist = BChatSDK.config.firebaseGoogleServicesPlistName;
             if (plist) {
                 plist = [plist stringByReplacingOccurrencesOfString:@".plist" withString:@""];
                 NSString * path = [[NSBundle mainBundle] pathForResource:plist ofType:@"plist"];

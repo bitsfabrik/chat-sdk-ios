@@ -8,8 +8,8 @@
 
 #import "BFirebaseAuthenticationHandler.h"
 
-#import <ChatSDK/ChatCore.h>
-#import "ChatFirebaseAdapter.h"
+#import <ChatSDKFirebase/FirebaseAdapter.h>
+#import <ChatSDK/Core.h>
 
 @implementation BFirebaseAuthenticationHandler
 
@@ -18,7 +18,9 @@
 // Each time the main tab bar appears the app check that
 // the user is authenticated
 -(RXPromise *) authenticateWithCachedToken {
-
+    
+    [BChatSDK.core goOnline];
+    
     BOOL authenticated = [self userAuthenticated];
     if (authenticated) {
         
@@ -26,7 +28,7 @@
         
         // If the user listeners have been added then authenticate completed successfully
         if(_userAuthenticatedThisSession) {
-            return [RXPromise resolveWithResult:NM.currentUser];
+            return [RXPromise resolveWithResult:BChatSDK.currentUser];
         }
         else {
             return [self loginWithFirebaseUser:[FIRAuth auth].currentUser];
@@ -48,30 +50,29 @@
 -(RXPromise *) logout {
     RXPromise * promise = [RXPromise new];
     
-    id<PUser> user = NM.currentUser;
+    id<PUser> user = BChatSDK.currentUser;
+
     
     // Stop observing the user
-    if(self.currentUserEntityID) {
-        [BStateManager userOff: self.currentUserEntityID];
+    if(user) {
+        NSDictionary * data = @{bHookWillLogout_PUser: user};
+        [BChatSDK.hook executeHookWithName:bHookWillLogout data:data];
+
+        [BStateManager userOff: user.entityID];
     }
     
     NSError * error = Nil;
     if([[FIRAuth auth] signOut:&error]) {
-        
-        [NM.core goOffline];
 
         _userAuthenticatedThisSession = NO;
-        
-        // Post a notification
-        [[NSNotificationCenter defaultCenter] postNotificationName:bNotificationLogout object:Nil];
-        
         [self setLoginInfo:Nil];
+        [BChatSDK.core goOffline];
         
         [[NSNotificationCenter  defaultCenter] postNotificationName:bNotificationBadgeUpdated object:Nil];
         
-        if (user != Nil) {
-            NSDictionary * data = @{bHookLogout_PUser: user};
-            [NM.hook executeHookWithName:bHookLogout data:data];
+        if (user) {
+            NSDictionary * data = @{bHookDidLogout_PUser: user};
+            [BChatSDK.hook executeHookWithName:bHookDidLogout data:data];
         }
         
         [promise resolveWithResult:Nil];
@@ -101,10 +102,11 @@
     }, Nil);
     
     // Depending on the login method we need to authenticate with Firebase
-    switch (details.type) {
+    switch (details.type)
+    {
         case bAccountTypeFacebook: {
-            if (NM.socialLogin) {
-                [NM.socialLogin loginWithFacebook].thenOnMain(^id(NSString * token) {
+            if (BChatSDK.socialLogin) {
+                [BChatSDK.socialLogin loginWithFacebook].thenOnMain(^id(NSString * token) {
                     FIRAuthCredential * credential = [FIRFacebookAuthProvider credentialWithAccessToken:token];
                     //[promise resolveWithResult:credential];
                     [[FIRAuth auth] signInAndRetrieveDataWithCredential:credential completion:handleResult];
@@ -119,8 +121,8 @@
             break;
         case bAccountTypeTwitter:
         {
-            if (NM.socialLogin) {
-                [NM.socialLogin loginWithTwitter].thenOnMain(^id(NSArray * array) {
+            if (BChatSDK.socialLogin) {
+                [BChatSDK.socialLogin loginWithTwitter].thenOnMain(^id(NSArray * array) {
                     FIRAuthCredential * credential = [FIRTwitterAuthProvider credentialWithToken:array.firstObject
                                                                                           secret:array.lastObject];
                     [[FIRAuth auth] signInAndRetrieveDataWithCredential:credential completion:handleResult];
@@ -131,14 +133,12 @@
                     return Nil;
                 });
             }
-            
         }
             break;
-        // TODO: Test this
         case bAccountTypeGoogle:
         {
-            if (NM.socialLogin) {
-                [NM.socialLogin loginWithGoogle].thenOnMain(^id(NSArray * array) {
+            if (BChatSDK.socialLogin) {
+                [BChatSDK.socialLogin loginWithGoogle].thenOnMain(^id(NSArray * array) {
                     FIRAuthCredential * credential = [FIRGoogleAuthProvider credentialWithIDToken:array.firstObject
                                                                                       accessToken:array.lastObject];
                     [[FIRAuth auth] signInAndRetrieveDataWithCredential:credential completion:handleResult];
@@ -197,34 +197,41 @@
         }
     }];
     
+    __weak __typeof__(self) weakSelf = self;
     return tokenPromise.thenOnMain(^id(NSString * token) {
+        __typeof__(self) strongSelf = weakSelf;
+
         NSString * uid = firebaseUser.uid;
         
         // Save the authentication ID for the current user
         // Set the current user
-        [self setLoginInfo:@{bAuthenticationIDKey: uid,
+        [strongSelf setLoginInfo:@{bAuthenticationIDKey: uid,
                              bTokenKey: token ? token : @""}];
         
         CCUserWrapper * user = [CCUserWrapper userWithAuthUserData:firebaseUser];
-        if (details.name) {
+        if (details.name && !user.model.name) {
             [user.model setName:details.name];
         }
         
-        if (!_userAuthenticatedThisSession) {
-            _userAuthenticatedThisSession = YES;
+        if (!strongSelf->_userAuthenticatedThisSession) {
+            strongSelf->_userAuthenticatedThisSession = YES;
             // Update the user from the remote server
             return [user once].thenOnMain(^id(id<PUserWrapper> user_) {
             
-                [NM.hook executeHookWithName:bHookUserAuthFinished data:@{bHookUserAuthFinished_PUser: user.model}];
+                [BChatSDK.hook executeHookWithName:bHookUserAuthFinished data:@{bHookUserAuthFinished_PUser: user.model}];
                 
-                [NM.core save];
+                [BChatSDK.core save];
+                
+                NSLog(@"User On: %@", user.entityID);
                 
                 // Add listeners here
                 [BStateManager userOn: user.entityID];
                 
-                [NM.core setUserOnline];
+                [BChatSDK.core setUserOnline];
                 
                 [[NSNotificationCenter defaultCenter] postNotificationName:bNotificationAuthenticationComplete object:Nil];
+                
+                strongSelf->_authenticatedThisSession = true;
                 
                 [user push];
                 

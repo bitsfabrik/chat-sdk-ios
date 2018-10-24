@@ -10,11 +10,13 @@
 #import <MBProgressHUD/MBProgressHUD.h>
 #import <VENTokenField/VENTokenField.h>
 #import <ChatSDK/PThread_.h>
+#import <ChatSDK/PFriendsListViewController.h>
 
 @class BSearchIndexViewController;
 @class MBProgressHUD;
 @protocol  PThread;
 @protocol PUser;
+@class BHook;
 
 @protocol BFriendsListDataSource <NSObject>
 
@@ -22,13 +24,13 @@
 
 @end
 
-@interface BFriendsListViewController : UIViewController<UITableViewDataSource, UITableViewDelegate, VENTokenFieldDelegate, VENTokenFieldDataSource, UITextFieldDelegate> {
+@interface BFriendsListViewController : UIViewController<UITableViewDataSource, UITableViewDelegate, VENTokenFieldDelegate, VENTokenFieldDataSource, UITextFieldDelegate, PFriendsListViewController> {
     NSMutableArray * _contacts;
     NSMutableArray * _selectedContacts;
     NSMutableArray * _contactsToExclude;
     
     NSString * _filterByName;
-    id _internetConnectionObserver;
+    BHook * _internetConnectionHook;
 }
 
 @property (weak, nonatomic) IBOutlet UITableView *tableView;
@@ -44,7 +46,7 @@
 
 @property (nonatomic, readwrite) int maximumSelectedUsers;
 
--(instancetype) initWithUsersToExclude: (NSArray *) users;
+-(instancetype) initWithUsersToExclude: (NSArray *) users onComplete: (void(^)(NSArray * users, NSString * name)) action;
 
 -(void) setUsersToExclude: (NSArray *) users;
 -(void) setSelectedUsers: (NSArray *) users;

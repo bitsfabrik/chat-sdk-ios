@@ -8,8 +8,8 @@
 
 #import "BEditProfileTableViewController.h"
 
-#import <ChatSDK/ChatCore.h>
-#import <ChatSDK/ChatUI.h>
+#import <ChatSDK/Core.h>
+#import <ChatSDK/UI.h>
 
 #define bStatusSection 0
 
@@ -39,18 +39,18 @@
     [self.view addGestureRecognizer:_tapRecognizer];
     
     // Update the user's details
-    id<PUser> user = NM.currentUser;
+    id<PUser> user = BChatSDK.currentUser;
 
     // Load the user's information
-    statusTextView.text = [user metaStringForKey:bDescription];
+    statusTextView.text = [user.meta metaStringForKey:bDescription];
     nameTextField.text = user.name;
-    locationTextField.text = [user metaStringForKey:bLocation];
+    locationTextField.text = [user.meta metaStringForKey:bLocation];
     
-    NSString * gender = [user metaStringForKey:bGender];
+    NSString * gender = [user.meta metaStringForKey:bGender];
     
     genderSegmentControl.selectedSegmentIndex = [gender isEqualToString:@"M"] ? 0 : 1 ;
 
-    NSString * countryCode = [user metaStringForKey:bCountry];
+    NSString * countryCode = [user.meta metaStringForKey:bCountry];
     countryCode = countryCode ? countryCode : @"GB";
     
     [countryPickerView setSelectedCountryCode:countryCode animated:NO];
@@ -87,7 +87,7 @@
     
     // This will prevent the app from trying to
     _didLogout = YES;
-    [NM.auth logout];
+    [BChatSDK.auth logout];
     
     // Clear fields
     nameTextField.text = @"";
@@ -105,30 +105,30 @@
 -(void) updateUserAndIndexes {
     
     // Add the user to the index
-    id<PUser> user = NM.currentUser;
+    id<PUser> user = BChatSDK.currentUser;
     
     // Get the user's starting meta
-    NSDictionary * oldMeta = [user.model metaDictionary];
-    
-    [user setMetaString:statusTextView.text forKey:bDescription];
+    NSDictionary * oldMeta = [user.model meta];
     
     user.name = nameTextField.text;
-    [user setMetaString:locationTextField.text forKey:bLocation];
     
     NSString * gender = genderSegmentControl.selectedSegmentIndex ? @"F" : @"M";
-    [user setMetaString: gender forKey:bGender];
-    [user setMetaString:countryPickerView.selectedCountryCode forKey:bCountry];
+    
+    [user updateMeta:@{bDescription: statusTextView.text ? statusTextView.text : @"",
+                       bLocation: locationTextField.text ? locationTextField.text : @"",
+                       bGender: gender,
+                       bCountry: countryPickerView.selectedCountryCode}];
     
     BOOL pushRequired = NO;
-    for (NSString * key in [user.model metaDictionary]) {
-        if (![oldMeta[key] isEqual: [user.model metaDictionary][key]]) {
+    for (NSString * key in [user.model meta]) {
+        if (![oldMeta[key] isEqual: [user.model meta][key]]) {
             pushRequired = YES;
             break;
         }
     }
     
     if (pushRequired) {
-        [NM.core pushUser];
+        [BChatSDK.core pushUser];
     }
     
 }
@@ -179,7 +179,7 @@
 
 - (IBAction)clearLocalData:(id)sender {
     [self logout];
-    [[BStorageManager sharedManager].a deleteAllData];
+    [BChatSDK.db deleteAllData];
 }
 
 @end

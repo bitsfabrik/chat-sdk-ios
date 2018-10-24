@@ -8,8 +8,8 @@
 
 #import "BPrivateThreadsViewController.h"
 
-#import <ChatSDK/ChatCore.h>
-#import <ChatSDK/ChatUI.h>
+#import <ChatSDK/Core.h>
+#import <ChatSDK/UI.h>
 
 @interface BPrivateThreadsViewController ()
 
@@ -19,10 +19,10 @@
 
 -(instancetype) init
 {
-    self = [super initWithNibName:Nil bundle:[NSBundle chatUIBundle]];
+    self = [super initWithNibName:Nil bundle:[NSBundle uiBundle]];
     if (self) {
         self.title = [NSBundle t:bConversations];
-        self.tabBarItem.image = [NSBundle chatUIImageNamed: @"icn_30_chat.png"];
+        self.tabBarItem.image = [NSBundle uiImageNamed: @"icn_30_chat.png"];
 
     }
     return self;
@@ -54,20 +54,17 @@
 }
 
 -(void) createPrivateThread {
-    
-    BFriendsListViewController * flvc = (BFriendsListViewController *) [[BInterfaceManager sharedManager].a friendsViewControllerWithUsersToExclude:@[]];
-    
+
     __weak __typeof__(self) weakSelf = self;
-    // The friends view controller will give us a list of users to invite
-    // TODO: Check this one
-    flvc.usersToInvite = ^(NSArray * users, NSString * groupName){
+
+    UINavigationController * nav = [BChatSDK.ui friendsNavigationControllerWithUsersToExclude:@[] onComplete:^(NSArray * users, NSString * groupName){
         __typeof__(self) strongSelf = weakSelf;
         
         MBProgressHUD * hud = [MBProgressHUD showHUDAddedTo:weakSelf.view animated:YES];
         hud.label.text = [NSBundle t:bCreatingThread];
         
         // Create group with group name
-        [NM.core createThreadWithUsers:users name:groupName threadCreated:^(NSError *error, id<PThread> thread) {
+        [BChatSDK.core createThreadWithUsers:users name:groupName threadCreated:^(NSError *error, id<PThread> thread) {
             if (!error) {
                 [strongSelf pushChatViewControllerWithThread:thread];
             }
@@ -76,11 +73,9 @@
             }
             [MBProgressHUD hideHUDForView:strongSelf.view animated:YES];
         }];
-    };
+    }];
     
-    UINavigationController * navController = [[UINavigationController alloc] initWithRootViewController:flvc];
-    
-    [self presentViewController:navController animated:YES completion:Nil];
+    [self presentViewController:nav animated:YES completion:Nil];
 }
 
 -(void) editButtonPressed: (UIBarButtonItem *) item {
@@ -91,18 +86,6 @@
     return UITableViewCellEditingStyleDelete;
 }
 
-// TODO: Check this
-// Called when a thread is to be deleted
-//- (void)tableView:(UITableView *)tableView_ commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *) indexPath
-//{
-//    if (editingStyle == UITableViewCellEditingStyleDelete )
-//    {
-//        id<PThread> thread = _threads[indexPath.row];
-//        [[NMdapter deleteThread:thread];
-//        [self reloadData];
-//    }
-//}
-
 - (BOOL)tableView:(UITableView *)tableView canEditRowAtIndexPath:(NSIndexPath *)indexPath
 {
     return YES;
@@ -110,7 +93,7 @@
 
 -(void) reloadData {
     [_threads removeAllObjects];
-    [_threads addObjectsFromArray:[NM.core threadsWithType:bThreadFilterPrivateThread]];
+    [_threads addObjectsFromArray:[BChatSDK.core threadsWithType:bThreadFilterPrivateThread includeDeleted:NO]];
     [super reloadData];
 }
 

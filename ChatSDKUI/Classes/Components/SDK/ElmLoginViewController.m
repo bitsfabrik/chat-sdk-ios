@@ -8,8 +8,8 @@
 
 #import "ElmLoginViewController.h"
 
-//#import <ChatSDK/ChatCore.h>
-#import <ChatSDK/ChatUI.h>
+//#import <ChatSDK/Core.h>
+#import <ChatSDK/UI.h>
 
 @interface ElmLoginViewController ()
 
@@ -34,7 +34,7 @@
 @synthesize delegate;
 
 -(instancetype) initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil {
-    if ((self = [super initWithNibName:@"BLoginViewController" bundle:[NSBundle chatUIBundle]])) {
+    if ((self = [super initWithNibName:@"BLoginViewController" bundle:[NSBundle uiBundle]])) {
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillShow:) name:UIKeyboardWillShowNotification object:Nil];
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:Nil];
     }
@@ -75,23 +75,25 @@
 
     anonymousButton.hidden = !anonymousButton.enabled;
     
-    [self updateButtonStateForInternetConnection];
+    [self updateInterfaceForReachabilityStateChange];
 }
 
 -(void) viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
+    __weak __typeof__(self) weakSelf = self;
+    
     [self.navigationController setNavigationBarHidden:YES animated:animated];
     [self hideHUD];
     
     emailField.text = @"";
     passwordField.text = @"";
     
-    _internetConnectionObserver = [[NSNotificationCenter defaultCenter] addObserverForName:kReachabilityChangedNotification object:nil queue:Nil usingBlock:^(NSNotification * notification) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self updateButtonStateForInternetConnection];
-        });
+    _internetConnectionHook = [BHook hook:^(NSDictionary * data) {
+        __typeof__(self) strongSelf = weakSelf;
+        [strongSelf updateInterfaceForReachabilityStateChange];
     }];
-    
+    [BChatSDK.hook addHook:_internetConnectionHook withName:bHookInternetConnectivityChanged];
+
 }
 
 -(void) viewDidDisappear:(BOOL)animated {
@@ -99,7 +101,7 @@
     
     [self hideHUDWithDuration:0];
     
-    [[NSNotificationCenter defaultCenter] removeObserver:_internetConnectionObserver];
+    [BChatSDK.hook removeHook:_internetConnectionHook withName:bHookInternetConnectivityChanged];
 }
 
 -(void) viewWillDisappear:(BOOL)animated {
@@ -113,14 +115,18 @@
 }
 
 -(void) keyboardWillShow: (NSNotification *) notification {
+    __weak __typeof__(self) weakSelf = self;
     [chatImageView.superview keepAnimatedWithDuration:0.3 layout:^{
-        chatImageView.keepVerticalCenter.equal = 0.08;
+        __typeof__(self) strongSelf = weakSelf;
+        strongSelf.chatImageView.keepVerticalCenter.equal = 0.08;
     }];
 }
 
 -(void) keyboardWillHide: (NSNotification *) notification {
+    __weak __typeof__(self) weakSelf = self;
     [chatImageView.superview keepAnimatedWithDuration:0.3 layout:^{
-        chatImageView.keepVerticalCenter.equal = 0.21;
+        __typeof__(self) strongSelf = weakSelf;
+        strongSelf.chatImageView.keepVerticalCenter.equal = 0.21;
     }];
 }
 
@@ -142,14 +148,17 @@
     
     [self hideKeyboard];
     
+    __weak __typeof__(self) weakSelf = self;
     if ([delegate respondsToSelector:@selector(registerWithUsername:password:)]) {
         [self showHUD];
         [delegate registerWithUsername:emailField.text password:passwordField.text].thenOnMain(
                                                                                                ^id(id success) {
-                                                                                                   [self loginButtonPressed:Nil];
+                                                                                                   __typeof__(self) strongSelf = weakSelf;
+                                                                                                   [strongSelf loginButtonPressed:Nil];
                                                                                                    return Nil;
                                                                                                }, ^id(NSError * error) {
-                                                                                                   [self alertWithTitle:[NSBundle t:bErrorTitle] withError:error];
+                                                                                                   __typeof__(self) strongSelf = weakSelf;
+                                                                                                   [strongSelf alertWithTitle:[NSBundle t:bErrorTitle] withError:error];
                                                                                                    return Nil;
                                                                                                });
     }
@@ -170,13 +179,16 @@
 -(void) handleLoginAttempt: (RXPromise *) promise {
     [self showHUD];
     
+    __weak __typeof__(self) weakSelf = self;
     promise.thenOnMain(
                 ^id(id<PUser> user) {
-                    [self authenticationFinished];
+                    __typeof__(self) strongSelf = weakSelf;
+                    [strongSelf authenticationFinished];
                     return Nil;
                 }, ^id(NSError * error) {
-                    [self alertWithTitle:[NSBundle t:bErrorTitle] withError:error];
-                    [self hideHUD];
+                    __typeof__(self) strongSelf = weakSelf;
+                    [strongSelf alertWithTitle:[NSBundle t:bErrorTitle] withError:error];
+                    [strongSelf hideHUD];
                     return Nil;
                 });
 }
@@ -203,8 +215,7 @@
 }
 
 - (IBAction)termsAndConditionsButtonPressed:(id)sender {
-    UIViewController * vc = [BInterfaceManager sharedManager].a.eulaViewController;
-    UINavigationController * nvc = [[UINavigationController alloc] initWithRootViewController:vc];
+    UINavigationController * nvc = BChatSDK.ui.eulaNavigationController;
     [self presentViewController:nvc animated:YES completion:Nil];
 }
 
@@ -275,10 +286,10 @@
     return NO;
 }
 
-- (void)updateButtonStateForInternetConnection {
+- (void)updateInterfaceForReachabilityStateChange {
     
-    BOOL connected = [Reachability reachabilityForInternetConnection].isReachable;
-    
+    BOOL connected = BChatSDK.connectivity.isConnected;
+
     loginButton.enabled = connected;
     registerButton.enabled = connected;
     anonymousButton.enabled = connected;
@@ -292,15 +303,17 @@
 }
 
 - (IBAction)forgotPasswordPressed:(id)sender {
+    __weak __typeof__(self) weakSelf = self;
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:[NSBundle t:bForgotPassword]
                                                                    message:[NSBundle t:bEnterCredentialToResetPassword]
                                                             preferredStyle:UIAlertControllerStyleAlert];
     
     UIAlertAction *submit = [UIAlertAction actionWithTitle:[NSBundle t:bOk] style:UIAlertActionStyleDefault
                                                    handler:^(UIAlertAction * action) {
+                                                       __typeof__(self) strongSelf = weakSelf;
                                                        if (alert.textFields.count > 0) {
                                                            UITextField *textField = [alert.textFields firstObject];
-                                                           [self impl_resetPasswordWithCredential:textField.text];
+                                                           [strongSelf impl_resetPasswordWithCredential:textField.text];
                                                        }
                                                    }];
     
@@ -310,7 +323,8 @@
     [alert addAction:cancel];
     
     [alert addTextFieldWithConfigurationHandler:^(UITextField *textField) {
-        textField.placeholder = delegate.usernamePlaceholder;
+        __typeof__(self) strongSelf = weakSelf;
+        textField.placeholder = strongSelf.delegate.usernamePlaceholder;
     }];
     
     [self presentViewController:alert animated:YES completion:Nil];
@@ -318,22 +332,28 @@
 }
 
 -(void) impl_resetPasswordWithCredential: (NSString *) credential {
+    __weak __typeof__(self) weakSelf = self;
+
     [delegate resetPasswordWithCredential:credential].thenOnMain(^id(id success) {
+        __typeof__(self) strongSelf = weakSelf;
+
         UIAlertController *alert = [UIAlertController alertControllerWithTitle:[NSBundle t:bSuccess]
                                                                        message:[NSBundle t:bEnterCredentialToResetPassword]
                                                                 preferredStyle:UIAlertControllerStyleAlert];
         UIAlertAction * cancel = [UIAlertAction actionWithTitle:[NSBundle t:bOk] style:UIAlertActionStyleCancel handler:Nil];
         [alert addAction:cancel];
         
-        [self presentViewController:alert animated:YES completion:Nil];
+        [strongSelf presentViewController:alert animated:YES completion:Nil];
         return Nil;
     }, ^id(NSError * error) {
+        __typeof__(self) strongSelf = weakSelf;
+
         UIAlertController *alert = [UIAlertController alertControllerWithTitle:[NSBundle t:bErrorTitle]
                                                                        message:[error localizedDescription]
                                                                 preferredStyle:UIAlertControllerStyleAlert];
         UIAlertAction * cancel = [UIAlertAction actionWithTitle:[NSBundle t:bOk] style:UIAlertActionStyleCancel handler:Nil];
         [alert addAction:cancel];
-        [self presentViewController:alert animated:YES completion:Nil];
+        [strongSelf presentViewController:alert animated:YES completion:Nil];
         return Nil;
     });
 }

@@ -8,13 +8,7 @@
 
 #import "BEntity.h"
 
-#import "ChatFirebaseAdapter.h"
-
-#import <ChatSDK/ChatCore.h>
-
-#import "Firebase+Paths.h"
-
-#import <ChatSDK/BKeys.h>
+#import <ChatSDKFirebase/FirebaseAdapter.h>
 
 @implementation BEntity
 
@@ -35,7 +29,7 @@
 }
 
 +(RXPromise *) pushUserMetaUpdated: (NSString *) userID {
-    return [self pushUpdated:bUsersPath entityID:userID key:bMetaDataPath];
+    return [self pushUpdated:bUsersPath entityID:userID key:bMetaPath];
 }
 
 +(RXPromise *) pushUserThreadsUpdated: (NSString *) userID {

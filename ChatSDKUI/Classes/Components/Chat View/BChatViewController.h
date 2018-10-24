@@ -25,5 +25,6 @@
 
 -(instancetype) initWithThread: (id<PThread>) thread;
 - (void) updateSubtitle;
+-(void) updateTitle;
 
 @end

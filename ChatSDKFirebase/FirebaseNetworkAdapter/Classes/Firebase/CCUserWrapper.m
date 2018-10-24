@@ -6,13 +6,7 @@
 //  Copyright (c) 2015 deluge. All rights reserved.
 //
 
-#import "CCUserWrapper.h"
-
-#import "NSManagedObject+Status.h"
-
-#import "ChatFirebaseAdapter.h"
-#import <ChatSDK/ChatCore.h>
-#import <ChatSDK/ChatUI.h>
+#import <ChatSDKFirebase/FirebaseAdapter.h>
 
 @implementation CCUserWrapper
 
@@ -24,7 +18,7 @@
     if((self = [self init])) {
         
         // Get the model from the database if it exists
-        _model = [[BStorageManager sharedManager].a fetchOrCreateEntityWithID:data.uid withType:bUserEntity];
+        _model = [BChatSDK.db fetchOrCreateEntityWithID:data.uid withType:bUserEntity];
         [self updateUserFromAuthUserData:data];
     }
     return self;
@@ -42,7 +36,7 @@
 }
 
 +(id) userWithEntityID: (NSString *) entityID {
-    id<PUser> user = [[BStorageManager sharedManager].a fetchOrCreateEntityWithID:entityID withType:bUserEntity];
+    id<PUser> user = [BChatSDK.db fetchOrCreateEntityWithID:entityID withType:bUserEntity];
     return [[self alloc] initWithModel: user];
 }
 
@@ -52,7 +46,7 @@
 
 -(id) initWithSnapshot: (FIRDataSnapshot *) data {
     if ((self = [self init])) {
-        _model = [[BStorageManager sharedManager].a fetchOrCreateEntityWithID:data.key withType:bUserEntity];
+        _model = [BChatSDK.db fetchOrCreateEntityWithID:data.key withType:bUserEntity];
         [self deserialize:data.value];
     }
     return self;
@@ -78,16 +72,16 @@
 
         NSString * email = provider.email;
         if (email && !_model.email) {
-            [_model setMetaString:email forKey:bEmailKey];
+            [_model setMetaValue:email forKey:bUserEmailKey];
         }
 
         NSString * phoneNumber = provider.phoneNumber;
         if (phoneNumber && !_model.phoneNumber) {
-            [_model setMetaString:phoneNumber forKey:bPhoneKey];
+            [_model setMetaValue:phoneNumber forKey:bUserPhoneKey];
         }
 
         NSString * profileURL = [provider.photoURL absoluteString];
-        if (profileURL && ![self.model metaStringForKey:bPictureURLKey]) {
+        if (profileURL && ![self.model.meta metaStringForKey:bUserImageURLKey]) {
             
             // Only do this for Twitter login
             if ([provider.providerID isEqualToString:@"twitter.com"]) {
@@ -106,7 +100,7 @@
         
 //        id<PUserAccount> account = [_model accountWithType:bAccountTypeFacebook];
 //        if (!account) {
-//            account = [[BStorageManager sharedManager].a createEntity:bUserAccountEntity];
+//            account = [BChatSDK.db createEntity:bUserAccountEntity];
 //            account.type = @(bAccountTypeFacebook);
 //            [_model addLinkedAccountsObject:account];
 //        }
@@ -115,10 +109,10 @@
     // Must set name before robot image to ensure they are different
     // Must be set outside of the provider loop as anonymous logins don't user data prodivers
     if (!_model.name) {
-        _model.name = [BChatSDK shared].configuration.defaultUserName;
+        _model.name = BChatSDK.shared.configuration.defaultUserName;
     }
     
-    if (!profilePictureSet && ![self.model metaStringForKey:bPictureURLKey]) {
+    if (!profilePictureSet && ![self.model.meta metaStringForKey:bUserImageURLKey]) {
         
         // If the user doesn't have a default profile picture then set it automatically
         UIImage * defaultImage = [self.model.defaultImage resizedImage:bProfilePictureSize interpolationQuality:kCGInterpolationHigh];
@@ -134,18 +128,18 @@
     // Setup the message color defaults
     // TODO: Maybe remove this...
     if (!_model.messageColor || !_model.messageColor.length) {
-        _model.messageColor = [BCoreUtilities colorToString:[BCoreUtilities colorWithHexString:[BChatSDK shared].configuration.messageColorMe]];
+        _model.messageColor = [BCoreUtilities colorToString:[BCoreUtilities colorWithHexString:BChatSDK.shared.configuration.messageColorMe]];
     }
 }
 
 - (RXPromise *)setProfilePictureWithImageURL: (NSString *)url {
     
-    id<PUser> user = NM.currentUser;
+    id<PUser> user = BChatSDK.currentUser;
     
     // Only set the user picture if they are logging on the first time
     if (url && !user.thumbnail) {
         
-        return [BCoreUtilities fetchImageFromURL:url].thenOnMain(^id(UIImage * image) {
+        return [BCoreUtilities fetchImageFromURL:[NSURL URLWithString:url]].thenOnMain(^id(UIImage * image) {
             
             if(image) {
                 
@@ -155,21 +149,20 @@
                 [user setImage:UIImagePNGRepresentation(image)];
                 [user setThumbnail:UIImagePNGRepresentation(thumbnail)];
                 
-                if(NM.upload) {
-                    return [NM.upload uploadImage:image thumbnail:thumbnail].thenOnMain(^id(NSDictionary * urls) {
+                if(BChatSDK.upload) {
+                    return [BChatSDK.upload uploadImage:image thumbnail:thumbnail].thenOnMain(^id(NSDictionary * urls) {
                         
                         // Set the meta data
-                        [user setMetaString:urls[bImagePath] forKey:bPictureURLKey];
-                        [user setMetaString:urls[bThumbnailPath] forKey:bPictureURLThumbnailKey];
+                        [user updateMeta:@{bUserImageURLKey: urls[bImagePath], bUserThumbnailURLKey: urls[bThumbnailPath]}];
                         
                         return [user loadProfileImage:NO].thenOnMain(^id(UIImage * image) {
                             
-                            return [NM.core pushUser];
+                            return [BChatSDK.core pushUser];
                         }, Nil);
                     }, Nil);
                 }
                 else {
-                    return [NM.core pushUser];
+                    return [BChatSDK.core pushUser];
                 }
                 
             }
@@ -195,7 +188,7 @@
 -(id) initWithEntityID: (NSString *) entityID {
     if((self = [self init])) {
         
-        _model = [[BStorageManager sharedManager].a fetchOrCreateEntityWithID:entityID
+        _model = [BChatSDK.db fetchOrCreateEntityWithID:entityID
                                                                            withType:bUserEntity];
         
     }
@@ -205,7 +198,7 @@
 
 -(RXPromise *) once {
     
-    NSString * token = NM.auth.loginInfo[bTokenKey];
+    NSString * token = BChatSDK.auth.loginInfo[bTokenKey];
     FIRDatabaseReference * ref = [FIRDatabaseReference userRef:self.entityID];
 
     return [BCoreUtilities getWithPath:[ref.description stringByAppendingString:@".json"] parameters:@{@"auth": token}].thenOnMain(^id(NSDictionary * response) {
@@ -353,8 +346,8 @@
             [BEntity pushUserMetaUpdated:self.model.entityID];
             
             // We only want to do this if we are logged in
-            if (NM.auth.userAuthenticated) {
-                [NM.search updateIndexForUser:self.model];
+            if (BChatSDK.auth.userAuthenticated) {
+                [BChatSDK.search updateIndexForUser:self.model];
                 [promise resolveWithResult:self.model];
             }
             else {
@@ -375,7 +368,7 @@
     FIRUserProfileChangeRequest *changeRequest = [user profileChangeRequest];
     
     changeRequest.displayName = self.model.name;
-    changeRequest.photoURL = [NSURL URLWithString:[self.model metaStringForKey:bPictureURLKey]];
+    changeRequest.photoURL = [NSURL URLWithString:[self.model.meta metaStringForKey:bUserImageURLKey]];
     
     RXPromise * promise = [RXPromise new];
     
@@ -392,27 +385,29 @@
 
 -(RXPromise *) deserialize: (NSDictionary *) value {
     
-    NSNumber * online = value[b_Online];
+    NSNumber * online = value[bOnlinePath];
     if (online) {
         _model.online = online;
     }
         
-    return [self deserializeMeta:value[bMetaDataPath]];
+    return [self deserializeMeta:value[bMetaPath]];
 }
 
 -(NSDictionary *) serialize {
-    return @{b_Meta: _model.metaDictionary};
+    NSMutableDictionary * meta = [NSMutableDictionary dictionaryWithDictionary:_model.meta];
+    meta[bUserNameLowercase] = _model.name ? [_model.name lowercaseString] : @"";
+    return @{bMetaPath: meta};
 }
 
 // TODO: Find a way to determine if the meta has actually been updated i.e. is it 
 -(RXPromise *) deserializeMeta: (NSDictionary *) value {
     // Get the user's meta data
-    NSMutableDictionary * meta = [NSMutableDictionary dictionaryWithDictionary:_model.metaDictionary];
+    NSMutableDictionary * meta = [NSMutableDictionary dictionaryWithDictionary:_model.meta];
     NSDictionary * newMeta = value;
 
     // Check to see if the image has changed
-    BOOL thumbnailChanged = ![meta[bPictureURLThumbnailKey] isEqualToString:newMeta[bPictureURLThumbnailKey]];
-    BOOL imageChanged = ![meta[bPictureURLKey] isEqualToString:newMeta[bPictureURLKey]];
+    BOOL thumbnailChanged = ![meta[bUserThumbnailURLKey] isEqualToString:newMeta[bUserThumbnailURLKey]];
+    BOOL imageChanged = ![meta[bUserImageURLKey] isEqualToString:newMeta[bUserImageURLKey]];
     
     for (NSString * key in [newMeta allKeys]) {
         if (![meta[key] isEqual:newMeta[key]]) {
@@ -421,13 +416,13 @@
     }
     
     if (meta) {
-        [_model setMetaDictionary:meta];
+        [_model setMeta:meta];
     }
     
     NSMutableArray * promises = [NSMutableArray new];
     [promises addObject:[_model loadProfileThumbnail:thumbnailChanged]];
     
-    if (self.entityID == NM.currentUser.entityID) {
+    if (self.entityID == BChatSDK.currentUser.entityID) {
         [promises addObject:[_model loadProfileImage:imageChanged]];
     }
     
@@ -439,7 +434,7 @@
 }
 
 -(FIRDatabaseReference *) metaRef {
-    return [[self ref] child:bMetaDataPath];
+    return [[self ref] child:bMetaPath];
 }
 
 -(FIRDatabaseReference *) thumbnailRef {
@@ -470,7 +465,7 @@
     // Get the user's reference
     FIRDatabaseReference * userThreadsRef = [[FIRDatabaseReference userThreadsRef:_model.entityID]child:entityID];
 
-    [userThreadsRef setValue:@{b_InvitedBy: NM.currentUser.entityID} withCompletionBlock:^(NSError * error, FIRDatabaseReference * ref) {
+    [userThreadsRef setValue:@{bInvitedBy: BChatSDK.currentUser.entityID} withCompletionBlock:^(NSError * error, FIRDatabaseReference * ref) {
         if (!error) {
             [BEntity pushUserThreadsUpdated:self.model.entityID];
             [promise resolveWithResult:self];

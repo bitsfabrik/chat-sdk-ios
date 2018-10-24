@@ -7,8 +7,8 @@
 //
 
 #import "BLocationViewController.h"
-#import <ChatSDK/ChatCore.h>
-#import <ChatSDK/ChatUI.h>
+#import <ChatSDK/Core.h>
+#import <ChatSDK/UI.h>
 
 @interface BLocationViewController ()
 
@@ -21,7 +21,7 @@
 
 -(instancetype) initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil {
     
-    self = [super initWithNibName:@"BLocationViewController" bundle:[NSBundle chatUIBundle]];
+    self = [super initWithNibName:@"BLocationViewController" bundle:[NSBundle uiBundle]];
     if (self) {
         self.title = [NSBundle t:bLocation];
     }
@@ -48,6 +48,12 @@
     [_map.mapView setRegion:region animated:NO];
     [_map.mapView addAnnotation:annotation];
     [_map.mapView selectAnnotation:annotation animated:NO];
+}
+
+-(void) setLatitude: (double) latitude longitude: (double) longitude {
+    self.region = [BCoreUtilities regionForLongitude:longitude latitude:latitude];
+    self.annotation = [BCoreUtilities annotationForLongitude:longitude latitude:latitude];
+
 }
 
 -(void) viewWillDisappear:(BOOL)animated {
