@@ -203,7 +203,7 @@
             }];
         });
         
-        [[FIRDatabaseReference threadMessagesRef:_model.entityID] observeEventType:FIRDataEventTypeChildRemoved withBlock:^(FIRDataSnapshot * snapshot) {
+        [[FIRDatabaseReference threadMessagesRef:self->_model.entityID] observeEventType:FIRDataEventTypeChildRemoved withBlock:^(FIRDataSnapshot * snapshot) {
             __typeof__(self) strongSelf = weakSelf;
             CCMessageWrapper * wrapper = [CCMessageWrapper messageWithSnapshot:snapshot];
             id<PMessage> message = wrapper.model;
@@ -249,7 +249,7 @@
     [ref observeEventType:FIRDataEventTypeValue withBlock:^(FIRDataSnapshot * snapshot) {
         if(snapshot.value != [NSNull null]) {
             for(NSString * key in snapshot.value) {
-                [_model setMetaValue:snapshot.value[key] forKey:key];
+                [self->_model setMetaValue:snapshot.value[key] forKey:key];
                 [[NSNotificationCenter defaultCenter] postNotificationName:bNotificationThreadMetaUpdated object:Nil];
             }
         }
@@ -278,7 +278,7 @@
         if (![snapshot.value isEqual: [NSNull null]]) {
             // Update the thread
             CCUserWrapper * user = [CCUserWrapper userWithSnapshot:snapshot];
-            [_model addUser:user.model];
+            [self->_model addUser:user.model];
             [user metaOn];
             [[NSNotificationCenter defaultCenter] postNotificationName:bNotificationThreadUsersUpdated object:Nil];
         }
@@ -290,8 +290,8 @@
                 if(snapshot.value[userEntityID][bDeletedKey]) {
                     // Update the thread
                     CCUserWrapper * user = [CCUserWrapper userWithEntityID:userEntityID];
-                    if (_model.type.intValue ^ bThreadType1to1) {
-                        [_model removeUser:user.model];
+                    if (self->_model.type.intValue ^ bThreadType1to1) {
+                        [self->_model removeUser:user.model];
                         [[NSNotificationCenter defaultCenter] postNotificationName:bNotificationThreadUsersUpdated object:Nil];
                     }
                 }
@@ -303,7 +303,7 @@
         if (![snapshot.value isEqual: [NSNull null]]) {
             // Update the thread
             CCUserWrapper * user = [CCUserWrapper userWithSnapshot:snapshot];
-            [_model removeUser:user.model];
+            [self->_model removeUser:user.model];
             [[NSNotificationCenter defaultCenter] postNotificationName:bNotificationThreadUsersUpdated object:Nil];
         }
     }];
@@ -428,7 +428,7 @@
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         
         // Get the earliest message from the database
-        id<PMessage> earliestMessage = _model.messagesOrderedByDateAsc.firstObject;
+        id<PMessage> earliestMessage = self->_model.messagesOrderedByDateAsc.firstObject;
         NSDate * endDate = Nil;
         
         // If we have a message in the database then we use the earliest
@@ -512,7 +512,7 @@
 }
 
 -(NSDictionary *) serialize {
-    return @{b_Meta: _model.metaDictionary ?: @{},
+    return @{bMetaPath: _model.meta ?: @{},
              bDetailsPath: @{bCreationDate: [FIRServerValue timestamp],
                              bUserNameKey: _model.name ? _model.name : @"",
                              bType: _model.type.integerValue & bThreadFilterPrivate ? @(bThreadTypePrivateV3) : @(bThreadTypePublicV3),
@@ -522,7 +522,7 @@
 
 -(void) deserialize: (NSDictionary *) threadValue {
     
-    _model.metaDictionary = threadValue[b_Meta];
+    _model.meta = threadValue[bMetaPath];
     
     NSDictionary * value = threadValue[bDetailsPath];
     NSNumber * creationDate = value[bCreationDate];
@@ -546,7 +546,7 @@
         if(!_model.creator) {
             id<PUser> user = [BChatSDK.db fetchOrCreateEntityWithID:creatorEntityID withType:bUserEntity];
             [[CCUserWrapper userWithModel:user] once].thenOnMain(^id(id success) {
-                _model.creator = user;
+                self->_model.creator = user;
                 [[NSNotificationCenter defaultCenter] postNotificationName:bNotificationMessageUpdated
                                                                     object:Nil
                                                                   userInfo:@{bNotificationMessageUpdatedKeyMessage: self.model}];

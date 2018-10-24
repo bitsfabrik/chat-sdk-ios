@@ -26,7 +26,7 @@
 @class BCoreUtilities;
 @class BHook;
 
-@interface ElmChatViewController : UIViewController<UITableViewDataSource, UITableViewDelegate, PSendBarDelegate, UINavigationControllerDelegate, UIScrollViewDelegate, BChatOptionDelegate, UIDocumentInteractionControllerDelegate> {
+@interface ElmChatViewController : UIViewController<UITableViewDataSource, UITableViewDelegate, PSendBarDelegate, UINavigationControllerDelegate, UIScrollViewDelegate, BChatOptionDelegate, BMessageCellDelegate, UIDocumentInteractionControllerDelegate> {
     
     NSArray<BMessageSection *> * _messages;
     

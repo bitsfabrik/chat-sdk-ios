@@ -45,7 +45,7 @@
     threadModel.type = @(bThreadTypePublicGroup);
     threadModel.name = name;
     threadModel.entityID = entityID ? entityID : Nil;
-    threadModel.metaDictionary = metaDictionary;
+    threadModel.meta = metaDictionary;
     
     [BChatSDK.db endUndoGroup];
     

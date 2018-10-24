@@ -6,8 +6,6 @@
 //  Copyright (c) 2014 deluge. All rights reserved.
 //
 
-#import "Firebase+Paths.h"
-
 #import <ChatSDKFirebase/FirebaseAdapter.h>
 
 @implementation FIRDatabaseReference (Paths)

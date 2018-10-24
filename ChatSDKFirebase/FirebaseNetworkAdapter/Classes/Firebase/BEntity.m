@@ -13,7 +13,7 @@
 @implementation BEntity
 
 +(RXPromise *) pushThreadMetaUpdated: (NSString *) threadID {
-    return [self pushUpdated:bThreadsPath entityID:threadID key:bMetaDataPath];
+    return [self pushUpdated:bThreadsPath entityID:threadID key:bMetaPath];
 }
 
 +(RXPromise *) pushThreadDetailsUpdated: (NSString *) threadID {
