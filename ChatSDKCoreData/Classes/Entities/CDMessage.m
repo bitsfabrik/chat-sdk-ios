@@ -178,6 +178,16 @@
     [self setJson:@{bMessageTextKey: text ? text : @""}];
 }
 
+- (void)setText:(NSString *)text {
+    NSData *data = [text dataUsingEncoding:NSUTF8StringEncoding];
+    NSDictionary * response;
+    NSError * error;
+    if(data!=nil){
+        response = (NSDictionary *)[NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers error:&error];
+    }
+    [self setJson:response];
+}
+
 // This helps us know if we want to show it in the thread
 - (BOOL)showUserNameLabelForPosition: (bMessagePos) position {
     if (self.senderIsMe) {
