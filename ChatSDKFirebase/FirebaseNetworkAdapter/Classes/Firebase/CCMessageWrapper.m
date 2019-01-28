@@ -103,6 +103,22 @@
     return readReceipts;
 }
 
+-(void) handlePayload: (NSString *) payload __deprecated_msg("From version 4 onwards messages should be encoded using JSON."); {
+    
+    NSData *jsonData = [payload dataUsingEncoding:NSUTF8StringEncoding];
+    NSError *e;
+    NSDictionary *dict = [NSJSONSerialization JSONObjectWithData:jsonData options:0 error:&e];
+    
+    // This is encoded as JSON
+    if(dict[@"text"]) {
+        [_model setText:payload];
+    }
+    else {
+        [_model setTextAsDictionary:@{bMessageTextKey: payload}];
+    }
+
+}
+
 -(RXPromise *) deserialize: (NSDictionary *) value {
     
     RXPromise * promise = [RXPromise new];
@@ -112,7 +128,17 @@
         [_model setJson:json2];
     }
     else {
-        [_model setText:@""];
+        // Version 4 uses a JSON string so if this property is set, we use it!
+        NSString * json = value[bJSON];
+        if (json) {
+            [_model setText:json];
+        }
+        else {
+            NSString * payload = value[bPayload];
+            if (payload) {
+                [self handlePayload:payload];
+            }
+        }
     }
     
     NSNumber * messageType = value[bType];
