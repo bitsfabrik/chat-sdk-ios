@@ -137,6 +137,8 @@
             NSString * payload = value[bPayload];
             if (payload) {
                 [self handlePayload:payload];
+            } else {
+                [_model setText:@""];
             }
         }
     }
