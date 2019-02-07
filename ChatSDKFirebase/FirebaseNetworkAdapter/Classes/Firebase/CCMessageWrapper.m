@@ -87,7 +87,11 @@
                                                                                  bUserFirebaseID: _model.userModel.entityID,
                                                                                  bReadPath: self.initialReadReceipts,
                                                                                  bMetaPath: _model.meta ? _model.meta : @{}}];
-
+    
+    // TODO: REMOVE THIS ON NEXT VERSION
+    dict[bPayload] = _model.textString;
+    dict[bJSON] = _model.text;
+    
     return dict;
 }
 
