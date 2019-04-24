@@ -17,18 +17,22 @@
 }
 
 +(RXPromise *) fetchImageFromURL:(NSURL *)url {
-    return [BFileCache cacheFileFromURL:url].then(^id(NSURL * cacheURL) {
+    RXPromise * promise = [RXPromise new];
+    [BFileCache cacheFileFromURL:url].then(^id(NSURL * cacheURL) {
         NSData * data = [NSData dataWithContentsOfURL:cacheURL];
-        RXPromise * promise = [RXPromise new];
         dispatch_async(dispatch_get_main_queue(), ^{
             if (data) {
                 [promise resolveWithResult:[UIImage imageWithData:data]];
             } else {
-                [promise rejectWithReason:nil];
+                [promise resolveWithResult:Nil];
             }
         });
-        return promise;
-    }, nil);
+        return Nil;
+    }, ^id(NSError *error) {
+        [promise resolveWithResult:Nil];
+        return Nil;
+    });
+    return promise;
 }
 
 +(NSString *)getUUID {
