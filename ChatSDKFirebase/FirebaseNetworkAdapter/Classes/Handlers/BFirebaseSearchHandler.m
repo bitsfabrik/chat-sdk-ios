@@ -12,7 +12,7 @@
 
 @implementation BFirebaseSearchHandler
 
--(RXPromise *) usersForIndex: (NSString *) index withValue: (NSString *) value limit: (int) limit userAdded: (void(^)(id<PUser> user)) userAdded {
+-(RXPromise *) usersForIndex: (NSString *) index withValue: (id) value limit: (int) limit userAdded: (void(^)(id<PUser> user)) userAdded {
     RXPromise * promise = [RXPromise new];
     
     if ([index isEqual:bUserNameLowercase]) {
@@ -20,7 +20,7 @@
     }
 
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
-        if(!index || !index.length || !value || !value.length) {
+        if(!index || !index.length || !value) {
             // TODO: Localise this
             [promise rejectWithReason:[NSError errorWithDomain:@"" code:0 userInfo:@{NSLocalizedDescriptionKey: @"Index or value is blank"}]];
         }
@@ -34,7 +34,7 @@
                 if(snapshot.value != [NSNull null]) {
                     for(NSString * key in [snapshot.value allKeys]) {
                         NSDictionary * meta = snapshot.value[key][bMetaPath];
-                        if(meta && [meta[index] containsString:value]) {
+                        if(meta && [meta[index] isEqual:value]) {
                             CCUserWrapper * wrapper = [CCUserWrapper userWithSnapshot:[snapshot childSnapshotForPath:key]];
                             if(![wrapper.model isEqual:BChatSDK.currentUser]) {
                                 userAdded(wrapper.model);
@@ -50,7 +50,7 @@
     return promise;
 }
 
--(RXPromise *) usersForIndexes: (NSArray *) indexes withValue: (NSString *) value limit: (int) limit userAdded: (void(^)(id<PUser> user)) userAdded {
+-(RXPromise *) usersForIndexes: (NSArray *) indexes withValue: (id) value limit: (int) limit userAdded: (void(^)(id<PUser> user)) userAdded {
     
     if(!indexes) {
         indexes = @[bUserNameKey, bUserEmailKey, bUserPhoneKey, bUserNameLowercase];

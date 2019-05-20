@@ -21,7 +21,7 @@
 /**
  * @brief Get users for a given index i.e. name, email with the value...
  */
--(RXPromise *) usersForIndexes: (NSArray *) indexes withValue: (NSString *) value limit: (int) limit userAdded: (void(^)(id<PUser> user)) userAdded;
+-(RXPromise *) usersForIndexes: (NSArray *) indexes withValue: (id) value limit: (int) limit userAdded: (void(^)(id<PUser> user)) userAdded;
 
 -(RXPromise *) availableIndexes;
 
