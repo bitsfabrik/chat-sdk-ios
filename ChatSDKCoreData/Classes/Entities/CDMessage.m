@@ -177,6 +177,13 @@
 -(void) setTextString: (NSString *) text {
     [self setJson:@{bMessageTextKey: text ? text : @""}];
 }
+    
+-(NSString *) text {
+    NSError * error;
+    NSData * jsonData = [NSJSONSerialization  dataWithJSONObject:self.json options:0 error:&error];
+    NSString * myString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+    return myString;
+}
 
 - (void)setText:(NSString *)text {
     NSData *data = [text dataUsingEncoding:NSUTF8StringEncoding];
